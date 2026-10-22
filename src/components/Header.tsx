@@ -13,7 +13,7 @@ export default function Header({ total, hasCopied }: { total: number; hasCopied:
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.8, ease }}
       >
-        <img src="./logo.png" alt="Spelonline — Xbox Россия" />
+        <img src="./hero-logo.png" alt="XP Box — Xbox Россия" />
       </motion.div>
 
       <motion.div
@@ -56,7 +56,7 @@ export default function Header({ total, hasCopied }: { total: number; hasCopied:
       >
         <a className="chip" href={TG_CHANNEL} target="_blank" rel="noreferrer">
           <Send size={15} />
-          t.me/spelonline
+          Канал Telegram
         </a>
         <span className="chip chip-muted">
           <Clock size={15} />

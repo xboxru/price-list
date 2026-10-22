@@ -9,13 +9,13 @@ export default function Footer() {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <img
               src="./logo.png"
-              alt="Spelonline"
+              alt="XP Box"
               width={44}
               height={44}
               style={{ borderRadius: 13, border: "1px solid var(--line-strong)" }}
             />
             <strong style={{ fontFamily: "var(--font-display)", fontSize: 15, textTransform: "uppercase" }}>
-              Spelonline
+              XP Box
             </strong>
           </div>
           <p>
@@ -58,7 +58,7 @@ export default function Footer() {
       </div>
 
       <div className="footer-bottom">
-        <span>Spelonline · прайс-лист игр</span>
+        <span>XP Box · прайс-лист игр</span>
         <span>Цены обновляются автоматически · скидки недели — каждый понедельник</span>
       </div>
     </footer>

@@ -1,16 +1,16 @@
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowDownNarrowWide,
   ArrowUpDown,
   ArrowUpNarrowWide,
-  Check,
-  Copy,
+  ChevronDown,
   Flame,
   Ghost,
   ListFilter,
+  Plus,
   Search,
   Send,
-  ShoppingBag,
+  ShoppingCart,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -24,10 +24,11 @@ type SortMode = "none" | "asc" | "desc";
 interface CatalogProps {
   games: Game[];
   loading: boolean;
-  onCopy: (text: string, message?: string) => void;
+  cartIds: Set<string>;
+  addToCart: (id: string, name: string, price: string) => void;
+  openCart: () => void;
 }
 
-/** light 1:1 normalization (keeps indices aligned with original string) */
 const lightNorm = (s: string) => s.toLowerCase().replace(/ё/g, "е");
 
 function Highlighted({ name, query }: { name: string; query: string }) {
@@ -43,12 +44,66 @@ function Highlighted({ name, query }: { name: string; query: string }) {
   );
 }
 
-export default function Catalog({ games, loading, onCopy }: CatalogProps) {
+
+
+function ContactDropdown() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="contact-help-wrap">
+      <button
+        className={`contact-help-trigger ${open ? "expanded" : ""}`}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <Send size={16} />
+        <span>Спросить в личке</span>
+        <ChevronDown size={14} className={`chevron ${open ? "up" : ""}`} />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            className="contact-help-links"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <div className="contact-help-grid">
+              <a className="uv-btn" href={TG_PM} target="_blank" rel="noreferrer">
+                <svg className="uv-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                Telegram
+              </a>
+              <a className="uv-btn" href="https://clck.ru/3TFLbT" target="_blank" rel="noreferrer">
+                <svg className="uv-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 51C8 45 6 38 6 30C6 16 17 6 32 6C46 6 58 18 58 32C58 46 47 58 33 58C25 58 19 56 14 52L9 57C7 59 4 57 5 54L6 50C6 50 9 52 12 51Z" stroke="currentColor" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                MAX
+              </a>
+              <a className="uv-btn" href="https://vk.com/rus_xbox" target="_blank" rel="noreferrer">
+                <svg className="uv-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12.77 18.52h1.12s.34-.04.51-.22c.16-.17.16-.49.16-.49s-.02-1.49.67-1.71c.68-.22 1.56 1.47 2.49 2.12.7.49 1.24.39 1.24.39l2.49-.04s1.3-.08.68-1.11c-.05-.08-.36-.76-1.87-2.14-1.58-1.45-1.37-1.21.53-3.72.67-.91 1.63-2.29 1.48-2.77-.14-.45-1-.33-1-.33l-2.81.02s-.21-.03-.36.06c-.15.09-.25.31-.25.31s-.44 1.18-1.03 2.19c-1.24 2.12-1.74 2.24-1.94 2.1-.47-.31-.35-1.24-.35-1.9 0-2.07.31-2.93-.61-3.15-.31-.07-.53-.12-1.31-.13-.99-.01-1.83 0-2.31.24-.32.15-.56.5-.41.52.19.02.62.12.85.43.3.4.29 1.31.29 1.31s.17 2.44-.4 2.74c-.39.21-.93-.22-2.09-2.15-.59-.98-1.04-2.07-1.04-2.07s-.09-.21-.24-.33c-.18-.14-.44-.18-.44-.18l-2.67.02s-.4.01-.55.18c-.13.16-.01.48-.01.48s2.09 4.89 4.45 7.35c2.17 2.27 4.63 2.12 4.63 2.12z" />
+                </svg>
+                VK
+              </a>
+              <a className="uv-btn" href="https://jivo.chat/Mky3kA5Dsf" target="_blank" rel="noreferrer">
+                <svg className="uv-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                </svg>
+                Чат
+              </a>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+export default function Catalog({ games, loading, cartIds, addToCart, openCart }: CatalogProps) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortMode>("none");
   const [visible, setVisible] = useState(CHUNK);
-  const [flashId, setFlashId] = useState<number | null>(null);   // кратковременный ✓
-  const [orderedIds, setOrderedIds] = useState<Set<number>>(new Set()); // остаётся зелёной
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(() => {
@@ -59,19 +114,13 @@ export default function Catalog({ games, loading, onCopy }: CatalogProps) {
     return list;
   }, [games, query, sort]);
 
-  useEffect(() => {
-    setVisible(CHUNK);
-  }, [query, sort, games.length]);
+  useEffect(() => { setVisible(CHUNK); }, [query, sort, games.length]);
 
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
     const obs = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setVisible((v) => Math.min(v + CHUNK, filtered.length));
-        }
-      },
+      (entries) => { if (entries[0].isIntersecting) setVisible((v) => Math.min(v + CHUNK, filtered.length)); },
       { rootMargin: "900px 0px" }
     );
     obs.observe(el);
@@ -85,15 +134,12 @@ export default function Catalog({ games, loading, onCopy }: CatalogProps) {
     return out;
   }, [filtered, visible]);
 
-  const copyRow = (g: Game) => {
-    onCopy(`${g.name} — ${g.price}`, `${g.price} · добавлено в буфер`);
-    setFlashId(g.id);
-    setOrderedIds((prev) => new Set(prev).add(g.id));
-    window.setTimeout(() => setFlashId((cur) => (cur === g.id ? null : cur)), 900);
+  const handleToggleCart = (g: Game, e: React.MouseEvent) => {
+    e.stopPropagation();
+    addToCart(`game-${g.id}`, g.name, g.price);
   };
 
-  const cycleSort = () =>
-    setSort((s) => (s === "none" ? "asc" : s === "asc" ? "desc" : "none"));
+  const cycleSort = () => setSort((s) => (s === "none" ? "asc" : s === "asc" ? "desc" : "none"));
 
   const searching = normalize(query).length > 0;
   const shown = Math.min(visible, filtered.length);
@@ -146,13 +192,7 @@ export default function Catalog({ games, loading, onCopy }: CatalogProps) {
           onClick={cycleSort}
           title="Сортировка по цене"
         >
-          {sort === "asc" ? (
-            <ArrowDownNarrowWide size={17} />
-          ) : sort === "desc" ? (
-            <ArrowUpNarrowWide size={17} />
-          ) : (
-            <ArrowUpDown size={17} />
-          )}
+          {sort === "asc" ? <ArrowDownNarrowWide size={17} /> : sort === "desc" ? <ArrowUpNarrowWide size={17} /> : <ArrowUpDown size={17} />}
           <span className="lbl">
             {sort === "asc" ? "Сначала дешёвые" : sort === "desc" ? "Сначала дорогие" : "По цене"}
           </span>
@@ -179,13 +219,8 @@ export default function Catalog({ games, loading, onCopy }: CatalogProps) {
         <div className="empty">
           <Ghost size={44} strokeWidth={1.4} />
           <h3>Ничего не найдено</h3>
-          <p>
-            Попробуйте изменить запрос — или напишите нам, и мы подберём игру под заказ.
-          </p>
-          <a className="btn btn-primary" href={TG_PM} target="_blank" rel="noreferrer">
-            <Send size={16} style={{ position: "relative", top: "2px" }} />
-            <span style={{ position: "relative", top: "-1px" }}>Спросить в личке</span>
-          </a>
+          <p>Попробуйте изменить запрос — или напишите нам, и мы подберём игру под заказ.</p>
+          <ContactDropdown />
         </div>
       ) : (
         <div className="rows">
@@ -198,47 +233,62 @@ export default function Catalog({ games, loading, onCopy }: CatalogProps) {
               transition={{ duration: 0.45, ease }}
               style={{ display: "flex", flexDirection: "column", gap: 4 }}
             >
-              {chunk.map((g, ri) => (
-                <button
-                  className={`row ${g.hot ? "hot" : ""}`}
-                  key={g.id}
-                  onClick={() => copyRow(g)}
-                  title="Нажмите, чтобы скопировать название и цену"
-                >
-                  <span className="row-idx">
-                    {String(ci * CHUNK + ri + 1).padStart(4, "0")}
-                  </span>
-                  <span className="row-name">
-                    {g.hot && (
-                      <span className="hot-badge">
-                        <Flame size={10} />
-                        ТОП
+              {chunk.map((g, ri) => {
+                const inCart = cartIds.has(`game-${g.id}`);
+                return (
+                  <div
+                    className={`row ${g.hot ? "hot" : ""} ${inCart ? "in-cart-row" : ""}`}
+                    key={g.id}
+                    onClick={(e) => handleToggleCart(g, e)}
+                    title={inCart ? "Убрать из корзины" : "Добавить в корзину"}
+                  >
+                    <span className="row-idx">
+                      {String(ci * CHUNK + ri + 1).padStart(4, "0")}
+                    </span>
+                    <span className="row-name">
+                      {(g.hot || g.isNew) && (
+                        <span style={{ display: "flex", gap: "4px" }}>
+                          {g.isNew && (
+                            <span className="hot-badge new-badge">
+                              НОВИНКА
+                            </span>
+                          )}
+                          {g.hot && (
+                            <span className="hot-badge">
+                              <Flame size={10} />
+                              ТОП
+                            </span>
+                          )}
+                        </span>
+                      )}
+                      <span className="row-name-text">
+                        <Highlighted name={g.name} query={searching ? query.trim() : ""} />
+                      </span>
+                    </span>
+                    <span className="row-price">{g.price}</span>
+                    {inCart ? (
+                      <button
+                        type="button"
+                        className="order-mini"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openCart();
+                        }}
+                        title="Открыть корзину"
+                      >
+                        <ShoppingCart size={14} />
+                      </button>
+                    ) : (
+                      <span
+                        className="cart-row-btn"
+                        title="Добавить в корзину"
+                      >
+                        <Plus size={14} />
                       </span>
                     )}
-                    <span className="row-name-text">
-                      <Highlighted name={g.name} query={searching ? query.trim() : ""} />
-                    </span>
-                  </span>
-                  <span className="row-price">{g.price}</span>
-                  {/* После копирования — мини-кнопка «Оформить», иначе иконка копирования */}
-                  {orderedIds.has(g.id) ? (
-                    <a
-                      className={`order-mini ${flashId === g.id ? "flash" : ""}`}
-                      href={TG_PM}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      title="Оформить заказ в Telegram"
-                    >
-                      {flashId === g.id ? <Check size={14} /> : <ShoppingBag size={14} />}
-                    </a>
-                  ) : (
-                    <span className="copy-ico">
-                      <Copy size={15} />
-                    </span>
-                  )}
-                </button>
-              ))}
+                  </div>
+                );
+              })}
             </motion.div>
           ))}
         </div>
@@ -248,16 +298,17 @@ export default function Catalog({ games, loading, onCopy }: CatalogProps) {
         <div ref={sentinelRef}>
           {shown < filtered.length ? (
             <div className="sentinel-note">
-              Показано {shown.toLocaleString("ru-RU")} из{" "}
-              {filtered.length.toLocaleString("ru-RU")} — листайте дальше…
+              Показано {shown.toLocaleString("ru-RU")} из {filtered.length.toLocaleString("ru-RU")} — листайте дальше…
             </div>
           ) : (
-            <div className="sentinel-note">
-              Конец списка · Не нашли игру?{" "}
-              <a href={TG_PM} target="_blank" rel="noreferrer" style={{ color: "var(--accent)", fontWeight: 800 }}>
-                Напишите нам
-              </a>
-            </div>
+            <>
+              <div className="sentinel-note">
+                Конец списка · Не нашли игру?
+              </div>
+              <div style={{ marginTop: 12, marginBottom: 8 }}>
+                <ContactDropdown />
+              </div>
+            </>
           )}
         </div>
       )}

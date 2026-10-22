@@ -2,11 +2,14 @@ import { MotionConfig } from "framer-motion";
 import { RefreshCw, Unplug } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Background from "./components/Background";
+import Cart, { CartItem } from "./components/Cart";
 import Catalog from "./components/Catalog";
 import Deals from "./components/Deals";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
 import Marquee from "./components/Marquee";
+import Navbar from "./components/Navbar";
+import Subscriptions from "./components/Subscriptions";
 import { ScrollTop, Toast } from "./components/Overlays";
 import { useCopyToast } from "./hooks/useCopyToast";
 import { Deal, Game, fallbackGames, fetchGames, resolveDeals } from "./lib/games";
@@ -16,6 +19,9 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
   const [hasCopied, setHasCopied] = useState(false);
+  const [page, setPage] = useState<"games" | "subs">("games");
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartOpenSignal, setCartOpenSignal] = useState(0);
   const { toast, copy: rawCopy } = useCopyToast();
 
   const copy = useCallback(
@@ -33,7 +39,6 @@ export default function App() {
       setGames(data);
       setOffline(false);
     } catch {
-      // show a small embedded snapshot so the UI never looks broken
       setGames((prev) => (prev.length ? prev : fallbackGames()));
       setOffline(true);
     } finally {
@@ -41,38 +46,85 @@ export default function App() {
     }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   const deals: Deal[] = useMemo(() => resolveDeals(games), [games]);
+
+  // ── Корзина ──
+  const cartIds = useMemo(() => new Set(cart.map((i) => i.id)), [cart]);
+
+  const addToCart = useCallback((id: string, name: string, price: string) => {
+    setCart((prev) => {
+      if (prev.some((i) => i.id === id)) return prev;
+      return [...prev, { id, name, price }];
+    });
+  }, []);
+
+  const removeFromCart = useCallback((id: string) => {
+    setCart((prev) => {
+      const next = prev.filter((i) => i.id !== id);
+      if (next.length === 0) setCartOpenSignal(0); // сброс сигнала как при очистке
+      return next;
+    });
+  }, []);
+
+  const clearCart = useCallback(() => {
+    setCart([]);
+    setCartOpenSignal(0);
+  }, []);
+
+  const openCart = useCallback(() => {
+    setCartOpenSignal((n) => n + 1);
+  }, []);
 
   return (
     <MotionConfig reducedMotion="user">
       <Background />
+      <Navbar currentPage={page} setPage={setPage} />
 
-      <div className="shell">
+      <div className="shell" style={{ paddingTop: "60px" }}>
         <Header total={games.length} hasCopied={hasCopied} />
 
-        {offline && (
-          <div className="net-error" role="alert">
-            <Unplug size={18} />
-            <span>
-              Не удалось обновить прайс — показана сохранённая копия цен.
-            </span>
-            <button onClick={load}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <RefreshCw size={13} /> Повторить
-              </span>
-            </button>
-          </div>
+        <div className="nav-tabs">
+          <button
+            className={`nav-tab ${page === "games" ? "active" : ""}`}
+            onClick={() => setPage("games")}
+          >
+            Игры Xbox
+          </button>
+          <button
+            className={`nav-tab ${page === "subs" ? "active" : ""}`}
+            onClick={() => setPage("subs")}
+          >
+            Подписки
+          </button>
+        </div>
+
+        {page === "games" ? (
+          <>
+            {offline && (
+              <div className="net-error" role="alert">
+                <Unplug size={18} />
+                <span>Не удалось обновить прайс — показана сохранённая копия цен.</span>
+                <button onClick={load}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <RefreshCw size={13} /> Повторить
+                  </span>
+                </button>
+              </div>
+            )}
+
+            {!loading && deals.length > 0 && (
+              <Deals deals={deals} onCopy={copy} cartIds={cartIds} addToCart={addToCart} />
+            )}
+
+            <Marquee />
+
+            <Catalog games={games} loading={loading} cartIds={cartIds} addToCart={addToCart} openCart={openCart} />
+          </>
+        ) : (
+          <Subscriptions onCopy={copy} />
         )}
-
-        {!loading && deals.length > 0 && <Deals deals={deals} onCopy={copy} />}
-
-        <Marquee />
-
-        <Catalog games={games} loading={loading} onCopy={copy} />
       </div>
 
       <div className="shell">
@@ -80,6 +132,7 @@ export default function App() {
       </div>
 
       <Toast toast={toast} />
+      <Cart items={cart} onRemove={removeFromCart} onClear={clearCart} onCopy={copy} openSignal={cartOpenSignal} />
       <ScrollTop />
     </MotionConfig>
   );
