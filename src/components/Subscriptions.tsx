@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
-import { BadgeCheck, Check, Copy, Gamepad, Send, ShoppingBag, Sparkles, UserPlus } from "lucide-react";
-import { formatPrice, TG_PM } from "../lib/games";
+import { BadgeCheck, Check, Gamepad, Plus, ShoppingCart, Sparkles, UserPlus } from "lucide-react";
+import { formatPrice } from "../lib/games";
 import { SUBSCRIPTIONS, SUBSCRIPTIONS_NEW, SUBSCRIPTIONS_PS, SubscriptionPlan } from "../lib/subscriptions";
 
 const ease = [0.2, 0.7, 0.2, 1] as const;
@@ -10,12 +9,12 @@ interface SubCardProps {
   plan: SubscriptionPlan;
   index: number;
   accent?: "green" | "violet" | "ps";
-  flash?: boolean;
-  ordered?: boolean;
-  onCopy: () => void;
+  inCart?: boolean;
+  onAddToCart: () => void;
+  onOpenCart: () => void;
 }
 
-function SubCard({ plan, index, accent = "green", flash = false, ordered = false, onCopy }: SubCardProps) {
+function SubCard({ plan, index, accent = "green", inCart = false, onAddToCart, onOpenCart }: SubCardProps) {
   const isViolet = accent === "violet";
   const isPs = accent === "ps";
   
@@ -38,31 +37,10 @@ function SubCard({ plan, index, accent = "green", flash = false, ordered = false
         </div>
       )}
       <div className="sub-header">
+        {isPs && <div className="sub-series">{plan.name}</div>}
         <h3>{plan.duration}</h3>
         <div className="sub-price-row">
           <div className="sub-price">{formatPrice(plan.price)}</div>
-          {ordered ? (
-            <a
-              href={TG_PM}
-              target="_blank"
-              rel="noreferrer"
-              className={`sub-order-mini ${flash ? "flash" : ""}`}
-              title="Оформить заказ в Telegram"
-              aria-label="Оформить заказ в Telegram"
-            >
-              {flash ? <Check size={14} /> : <ShoppingBag size={14} />}
-            </a>
-          ) : (
-            <button
-              type="button"
-              className="sub-copy-mini"
-              onClick={onCopy}
-              title="Скопировать название подписки и цену"
-              aria-label="Скопировать название подписки и цену"
-            >
-              <Copy size={14} />
-            </button>
-          )}
         </div>
       </div>
       <p className="sub-desc">{plan.description}</p>
@@ -74,38 +52,38 @@ function SubCard({ plan, index, accent = "green", flash = false, ordered = false
           </li>
         ))}
       </ul>
-      <a
-        href={TG_PM}
-        target="_blank"
-        rel="noreferrer"
-        className={`btn ${btnClass}`}
-        style={{ width: "100%", marginTop: "auto" }}
-      >
-        <Send size={16} style={{ position: "relative", top: "2px" }} />
-        <span style={{ position: "relative", top: "-1px" }}>Заказать</span>
-      </a>
+      {inCart ? (
+        <button
+          className={`btn ${btnClass}`}
+          style={{ width: "100%", marginTop: "auto" }}
+          onClick={onOpenCart}
+        >
+          <ShoppingCart size={16} />
+          <span style={{ position: "relative", top: "-1px" }}>Открыть корзину</span>
+        </button>
+      ) : (
+        <button
+          className={`btn ${btnClass}`}
+          style={{ width: "100%", marginTop: "auto" }}
+          onClick={onAddToCart}
+        >
+          <Plus size={16} />
+          <span style={{ position: "relative", top: "-1px" }}>В корзину</span>
+        </button>
+      )}
     </motion.div>
   );
 }
 
 export default function Subscriptions({
-  onCopy,
+  cartIds,
+  addToCart,
+  openCart,
 }: {
-  onCopy: (text: string, message?: string) => void;
+  cartIds: Set<string>;
+  addToCart: (id: string, name: string, price: string) => void;
+  openCart: () => void;
 }) {
-  const [flashId, setFlashId] = useState<string | null>(null);
-  const [orderedIds, setOrderedIds] = useState<Set<string>>(new Set());
-
-  const copyPlan = (plan: SubscriptionPlan) => {
-    const text = `${plan.name} · ${plan.duration} — ${formatPrice(plan.price)}`;
-    onCopy(text, `Скопировано: ${plan.duration} · ${formatPrice(plan.price)}`);
-    setFlashId(plan.id);
-    setOrderedIds((prev) => new Set(prev).add(plan.id));
-    window.setTimeout(() => {
-      setFlashId((current) => (current === plan.id ? null : current));
-    }, 900);
-  };
-
   return (
     <section className="subs-section">
       {/* ── Подписки на свой аккаунт ── */}
@@ -128,9 +106,9 @@ export default function Subscriptions({
             plan={plan}
             index={i}
             accent="green"
-            flash={flashId === plan.id}
-            ordered={orderedIds.has(plan.id)}
-            onCopy={() => copyPlan(plan)}
+            inCart={cartIds.has(`sub-${plan.id}`)}
+            onAddToCart={() => addToCart(`sub-${plan.id}`, `${plan.name} · ${plan.duration}`, formatPrice(plan.price))}
+            onOpenCart={openCart}
           />
         ))}
       </div>
@@ -164,9 +142,9 @@ export default function Subscriptions({
             plan={plan}
             index={i}
             accent="violet"
-            flash={flashId === plan.id}
-            ordered={orderedIds.has(plan.id)}
-            onCopy={() => copyPlan(plan)}
+            inCart={cartIds.has(`sub-new-${plan.id}`)}
+            onAddToCart={() => addToCart(`sub-new-${plan.id}`, `${plan.name} · ${plan.duration}`, formatPrice(plan.price))}
+            onOpenCart={openCart}
           />
         ))}
       </div>
@@ -201,9 +179,9 @@ export default function Subscriptions({
             plan={plan}
             index={i}
             accent="ps"
-            flash={flashId === plan.id}
-            ordered={orderedIds.has(plan.id)}
-            onCopy={() => copyPlan(plan)}
+            inCart={cartIds.has(`sub-ps-${plan.id}`)}
+            onAddToCart={() => addToCart(`sub-ps-${plan.id}`, `${plan.name} · ${plan.duration}`, formatPrice(plan.price))}
+            onOpenCart={openCart}
           />
         ))}
       </div>

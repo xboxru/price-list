@@ -1,11 +1,11 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Gamepad2, Menu, Send, X, LayoutGrid } from "lucide-react";
+import { ChevronDown, Gamepad2, Layers3, Menu, Send, X, LayoutGrid } from "lucide-react";
 import { useState, useEffect } from "react";
 import { TG_PM } from "../lib/games";
 
 interface NavbarProps {
-  currentPage: "games" | "subs";
-  setPage: (page: "games" | "subs") => void;
+  currentPage: "games" | "subs" | "collections";
+  setPage: (page: "games" | "subs" | "collections") => void;
 }
 
 function MenuContact() {
@@ -75,12 +75,13 @@ export default function Navbar({ currentPage, setPage }: NavbarProps) {
 
   const menuItems = [
     { id: "games", label: "Игры Xbox", icon: LayoutGrid },
+    { id: "collections", label: "Подборки", icon: Layers3 },
     { id: "subs", label: "Подписки", icon: Gamepad2 },
   ];
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
-  const handlePageSelect = (page: "games" | "subs") => {
+  const handlePageSelect = (page: "games" | "subs" | "collections") => {
     setPage(page);
     setIsOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -122,7 +123,7 @@ export default function Navbar({ currentPage, setPage }: NavbarProps) {
                   <button
                     key={item.id}
                     className={`menu-link ${currentPage === item.id ? "active" : ""}`}
-                    onClick={() => handlePageSelect(item.id as "games" | "subs")}
+                    onClick={() => handlePageSelect(item.id as "games" | "subs" | "collections")}
                   >
                     <item.icon size={20} />
                     {item.label}

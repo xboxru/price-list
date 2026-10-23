@@ -1,10 +1,10 @@
-import { AnimatePresence, motion } from "framer-motion";
-import { Clock, Gamepad2, Send, ShoppingCart } from "lucide-react";
-import { TG_CHANNEL, TG_PM } from "../lib/games";
+import { motion } from "framer-motion";
+import { Clock, Gamepad2, Send } from "lucide-react";
+import { TG_CHANNEL } from "../lib/games";
 
 const ease = [0.2, 0.7, 0.2, 1] as const;
 
-export default function Header({ total, hasCopied }: { total: number; hasCopied: boolean }) {
+export default function Header({ total }: { total: number }) {
   return (
     <header className="hero">
       <motion.div
@@ -67,23 +67,7 @@ export default function Header({ total, hasCopied }: { total: number; hasCopied:
           В прайсе <b>{total > 0 ? total.toLocaleString("ru-RU") : "…"}</b> позиций
         </span>
 
-        <AnimatePresence>
-          {hasCopied && (
-            <motion.a
-              className="chip chip-order"
-              href={TG_PM}
-              target="_blank"
-              rel="noreferrer"
-              initial={{ opacity: 0, scale: 0.8, y: 8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 6 }}
-              transition={{ type: "spring", stiffness: 420, damping: 26 }}
-            >
-              <ShoppingCart size={15} />
-              Оформить заказ
-            </motion.a>
-          )}
-        </AnimatePresence>
+
       </motion.div>
     </header>
   );

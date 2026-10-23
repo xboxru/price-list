@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Background from "./components/Background";
 import Cart, { CartItem } from "./components/Cart";
 import Catalog from "./components/Catalog";
+import Collections from "./components/Collections";
 import Deals from "./components/Deals";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
@@ -18,8 +19,7 @@ export default function App() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
-  const [hasCopied, setHasCopied] = useState(false);
-  const [page, setPage] = useState<"games" | "subs">("games");
+  const [page, setPage] = useState<"games" | "subs" | "collections">("games");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpenSignal, setCartOpenSignal] = useState(0);
   const { toast, copy: rawCopy } = useCopyToast();
@@ -27,7 +27,6 @@ export default function App() {
   const copy = useCallback(
     (text: string, message?: string) => {
       rawCopy(text, message);
-      setHasCopied(true);
     },
     [rawCopy]
   );
@@ -83,7 +82,7 @@ export default function App() {
       <Navbar currentPage={page} setPage={setPage} />
 
       <div className="shell" style={{ paddingTop: "60px" }}>
-        <Header total={games.length} hasCopied={hasCopied} />
+        <Header total={games.length} />
 
         <div className="nav-tabs">
           <button
@@ -91,6 +90,12 @@ export default function App() {
             onClick={() => setPage("games")}
           >
             Игры Xbox
+          </button>
+          <button
+            className={`nav-tab ${page === "collections" ? "active" : ""}`}
+            onClick={() => setPage("collections")}
+          >
+            Подборки
           </button>
           <button
             className={`nav-tab ${page === "subs" ? "active" : ""}`}
@@ -115,15 +120,17 @@ export default function App() {
             )}
 
             {!loading && deals.length > 0 && (
-              <Deals deals={deals} onCopy={copy} cartIds={cartIds} addToCart={addToCart} />
+              <Deals deals={deals} cartIds={cartIds} addToCart={addToCart} openCart={openCart} />
             )}
 
             <Marquee />
 
             <Catalog games={games} loading={loading} cartIds={cartIds} addToCart={addToCart} openCart={openCart} />
           </>
+        ) : page === "collections" ? (
+          <Collections cartIds={cartIds} addToCart={addToCart} openCart={openCart} />
         ) : (
-          <Subscriptions onCopy={copy} />
+          <Subscriptions cartIds={cartIds} addToCart={addToCart} openCart={openCart} />
         )}
       </div>
 

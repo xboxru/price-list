@@ -1,22 +1,20 @@
 import { motion } from "framer-motion";
-import { Check, Copy, Flame, Plus, Send, ShoppingBag, Sparkles, Timer } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Flame, Plus, ShoppingCart, Sparkles, Timer } from "lucide-react";
+import { useMemo } from "react";
 import { useCountdown } from "../hooks/useCountdown";
-import { Deal, TG_PM, formatPrice, isoWeek } from "../lib/games";
+import { Deal, formatPrice, isoWeek } from "../lib/games";
 
 const ease = [0.2, 0.7, 0.2, 1] as const;
 
 interface DealsProps {
   deals: Deal[];
-  onCopy: (text: string, message?: string) => void;
   cartIds: Set<string>;
   addToCart: (id: string, name: string, price: string) => void;
+  openCart: () => void;
 }
 
-export default function Deals({ deals, onCopy, cartIds, addToCart }: DealsProps) {
+export default function Deals({ deals, cartIds, addToCart, openCart }: DealsProps) {
   const cd = useCountdown();
-  const [flashId, setFlashId] = useState<number | null>(null);
-  const [copiedIds, setCopiedIds] = useState<Set<number>>(new Set());
 
   const { spotlight, cards, maxDiscount } = useMemo(() => {
     if (deals.length === 0) return { spotlight: undefined, cards: [], maxDiscount: 0 };
@@ -31,19 +29,10 @@ export default function Deals({ deals, onCopy, cartIds, addToCart }: DealsProps)
 
   if (!spotlight) return null;
 
-  const copyDeal = (d: Deal) => {
-    onCopy(`${d.game.name} — ${d.salePrice}`, `Скопировано: ${d.salePrice} · скидка −${Math.round(d.discount * 100)}%`);
-    setFlashId(d.game.id);
-    setCopiedIds((prev) => new Set(prev).add(d.game.id));
-    window.setTimeout(() => setFlashId((cur) => (cur === d.game.id ? null : cur)), 900);
-  };
-
   const handleAddToCart = (d: Deal) => {
     addToCart(`deal-${d.game.id}`, d.game.name, d.salePrice);
   };
 
-  const spotFlash = flashId === spotlight.game.id;
-  const spotCopied = copiedIds.has(spotlight.game.id);
   const spotInCart = cartIds.has(`deal-${spotlight.game.id}`);
 
   return (
@@ -95,39 +84,15 @@ export default function Deals({ deals, onCopy, cartIds, addToCart }: DealsProps)
               </span>
             </div>
             <div className="btn-row">
-              <a className="btn btn-primary" href={TG_PM} target="_blank" rel="noreferrer">
-                <Send size={16} style={{ position: "relative", top: "2px" }} />
-                <span style={{ position: "relative", top: "-1px" }}>Купить в Telegram</span>
-              </a>
-              {/* Копировать */}
-              {spotCopied ? (
-                <a
-                  className={`btn btn-ordered ${spotFlash ? "flash" : ""}`}
-                  href={TG_PM}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {spotFlash ? <Check size={16} /> : <ShoppingBag size={16} />}
-                  <span>{spotFlash ? "Скопировано!" : "Оформить заказ"}</span>
-                </a>
-              ) : (
-                <button className="btn btn-ghost" onClick={() => copyDeal(spotlight)}>
-                  <Copy size={16} style={{ position: "relative", top: "1px" }} />
-                  <span style={{ position: "relative", top: "-1px" }}>Скопировать</span>
-                </button>
-              )}
-              {/* В корзину */}
               {spotInCart ? (
-                <span className="btn-icon-sq added" title="Уже в корзине">
-                  <Check size={18} />
-                </span>
+                <button className="btn btn-primary" onClick={openCart}>
+                  <ShoppingCart size={16} />
+                  <span>Открыть корзину</span>
+                </button>
               ) : (
-                <button
-                  className="btn-icon-sq"
-                  onClick={() => handleAddToCart(spotlight)}
-                  title="Добавить в корзину"
-                >
-                  <Plus size={18} />
+                <button className="btn btn-primary" onClick={() => handleAddToCart(spotlight)}>
+                  <Plus size={16} />
+                  <span>В корзину</span>
                 </button>
               )}
             </div>
@@ -141,11 +106,9 @@ export default function Deals({ deals, onCopy, cartIds, addToCart }: DealsProps)
               key={deal.game.id}
               deal={deal}
               index={i}
-              flash={flashId === deal.game.id}
-              copied={copiedIds.has(deal.game.id)}
               inCart={cartIds.has(`deal-${deal.game.id}`)}
-              onCopy={() => copyDeal(deal)}
               onAddToCart={() => handleAddToCart(deal)}
+              onOpenCart={openCart}
             />
           ))}
         </div>
@@ -163,19 +126,15 @@ export default function Deals({ deals, onCopy, cartIds, addToCart }: DealsProps)
 function DealCard({
   deal,
   index,
-  flash,
-  copied,
   inCart,
-  onCopy,
   onAddToCart,
+  onOpenCart,
 }: {
   deal: Deal;
   index: number;
-  flash: boolean;
-  copied: boolean;
   inCart: boolean;
-  onCopy: () => void;
   onAddToCart: () => void;
+  onOpenCart: () => void;
 }) {
   return (
     <motion.article
@@ -196,34 +155,15 @@ function DealCard({
       <div className="deal-side">
         <span className="old">{deal.basePrice}</span>
         <span className="new">{deal.salePrice}</span>
-        <div style={{ display: "flex", gap: 6 }}>
-          {/* Копирование */}
-          {copied ? (
-            <a
-              className={`order-mini ${flash ? "flash" : ""}`}
-              href={TG_PM}
-              target="_blank"
-              rel="noreferrer"
-              title="Оформить заказ в Telegram"
-            >
-              {flash ? <Check size={14} /> : <ShoppingBag size={14} />}
-            </a>
-          ) : (
-            <button className="copy-ico" onClick={onCopy} title="Скопировать название и цену">
-              <Copy size={14} />
-            </button>
-          )}
-          {/* Корзина */}
-          {inCart ? (
-            <span className="order-mini" title="Уже в корзине" style={{ background: "var(--violet)", boxShadow: "0 4px 14px -4px rgba(167,139,250,0.55)" }}>
-              <Check size={14} />
-            </span>
-          ) : (
-            <button className="cart-row-btn in-deal" onClick={onAddToCart} title="Добавить в корзину">
-              <Plus size={14} />
-            </button>
-          )}
-        </div>
+        {inCart ? (
+          <button className="order-mini" onClick={onOpenCart} title="Открыть корзину">
+            <ShoppingCart size={14} />
+          </button>
+        ) : (
+          <button className="cart-row-btn in-deal" onClick={onAddToCart} title="Добавить в корзину">
+            <Plus size={14} />
+          </button>
+        )}
       </div>
     </motion.article>
   );

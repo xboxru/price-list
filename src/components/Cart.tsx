@@ -153,21 +153,23 @@ export default function Cart({ items, onRemove, onClear, onCopy, openSignal }: C
                   {items.map((item) => (
                     <motion.div
                       key={item.id}
-                      className="cart-item"
-                      initial={{ opacity: 0, x: -16, height: 0 }}
-                      animate={{ opacity: 1, x: 0, height: "auto" }}
-                      exit={{ opacity: 0, x: 16, height: 0 }}
-                      transition={{ duration: 0.22 }}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      style={{ overflow: "hidden" }}
                     >
-                      <span className="cart-item-name">{item.name}</span>
-                      <span className="cart-item-price">{item.price}</span>
-                      <button
-                        className="cart-item-remove"
-                        onClick={() => onRemove(item.id)}
-                        title="Убрать из корзины"
-                      >
-                        <X size={13} />
-                      </button>
+                      <div className="cart-item">
+                        <span className="cart-item-name">{item.name}</span>
+                        <span className="cart-item-price">{item.price}</span>
+                        <button
+                          className="cart-item-remove"
+                          onClick={() => onRemove(item.id)}
+                          title="Убрать из корзины"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
                     </motion.div>
                   ))}
                 </AnimatePresence>
