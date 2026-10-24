@@ -17,6 +17,7 @@ export interface Game {
   priceValue: number;  // numeric price
   hot: boolean;        // had a flame marker in the sheet
   isNew: boolean;      // had a 🆕 marker in the sheet
+  isPreorder: boolean; // had a 📆 marker in the sheet
 }
 
 export interface DealDef {
@@ -97,11 +98,12 @@ export function formatPrice(value: number): string {
   return `${value.toLocaleString("ru-RU")} ₽`;
 }
 
-export function cleanName(raw: string): { name: string; hot: boolean; isNew: boolean } {
+export function cleanName(raw: string): { name: string; hot: boolean; isNew: boolean; isPreorder: boolean } {
   const hot = /\u{1F525}|⭐|🏆/u.test(raw);
   const isNew = /\ud83c\udd95/u.test(raw) || /🆕/.test(raw);
+  const isPreorder = /📆/.test(raw) || /\u{1F4C6}/u.test(raw);
   const name = raw.replace(EMOJI_RE, "").replace(/\s+/g, " ").trim();
-  return { name: name || raw, hot, isNew };
+  return { name: name || raw, hot, isNew, isPreorder };
 }
 
 export function parseSheet(values: string[][] | undefined): Game[] {
@@ -110,7 +112,7 @@ export function parseSheet(values: string[][] | undefined): Game[] {
   for (let i = 1; i < values.length; i++) {
     const row = values[i];
     if (!row || !row[0] || !row[1]) continue;
-    const { name, hot, isNew } = cleanName(String(row[0]));
+    const { name, hot, isNew, isPreorder } = cleanName(String(row[0]));
     const price = String(row[1]).trim();
     games.push({
       id: i,
@@ -120,6 +122,7 @@ export function parseSheet(values: string[][] | undefined): Game[] {
       priceValue: parsePrice(price),
       hot,
       isNew,
+      isPreorder,
     });
   }
   return games;

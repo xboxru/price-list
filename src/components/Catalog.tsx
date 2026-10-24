@@ -246,8 +246,13 @@ export default function Catalog({ games, loading, cartIds, addToCart, openCart }
                       {String(ci * CHUNK + ri + 1).padStart(4, "0")}
                     </span>
                     <span className="row-name">
-                      {(g.hot || g.isNew) && (
-                        <span style={{ display: "flex", gap: "4px" }}>
+                      {(g.hot || g.isNew || g.isPreorder) && (
+                        <span style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                          {g.isPreorder && (
+                            <span className="hot-badge preorder-badge">
+                              📆 ПРЕДЗАКАЗ
+                            </span>
+                          )}
                           {g.isNew && (
                             <span className="hot-badge new-badge">
                               НОВИНКА

@@ -1626,6 +1626,12 @@ img {
   border: 1px solid rgba(0, 119, 255, 0.3);
 }
 
+.hot-badge.preorder-badge {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
 .row-price {
   font-family: var(--font-mono);
   font-size: 14.5px;
@@ -1867,11 +1873,27 @@ img {
 .cart-order-btn .chevron.up { transform: rotate(180deg); }
 .cart-order-btn.expanded { border-radius: 12px 12px 0 0; }
 
+.cart-links-wrap {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateY(-4px);
+  transition:
+    max-height 0.28s ease,
+    opacity 0.2s ease,
+    transform 0.28s ease;
+}
+
+.cart-links-wrap.open {
+  max-height: 120px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .cart-links {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 5px;
-  overflow: hidden;
   padding: 0 14px 14px;
 }
 .cart-link {

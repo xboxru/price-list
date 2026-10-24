@@ -129,6 +129,7 @@ export default function Cart({ items, onRemove, onClear, onCopy, openSignal }: C
           <div ref={drawerRef} className="cart-drawer-wrap">
             <motion.div
               className="cart-drawer"
+              layout
               initial={{ opacity: 0, y: 32, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 24, scale: 0.97 }}
@@ -176,7 +177,7 @@ export default function Cart({ items, onRemove, onClear, onCopy, openSignal }: C
               </div>
 
               {/* Footer */}
-              <div className="cart-footer">
+              <motion.div className="cart-footer" layout>
                 <div className="cart-total">
                   Итого: <span>{total.toLocaleString("ru-RU")} ₽</span>
                 </div>
@@ -198,38 +199,30 @@ export default function Cart({ items, onRemove, onClear, onCopy, openSignal }: C
                   </button>
                 </div>
 
-                <AnimatePresence>
-                  {showLinks && (
-                    <motion.div
-                      className="cart-links"
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.25 }}
-                    >
-                      <a className="cart-link tg" href={TG_PM} target="_blank" rel="noreferrer" title="Telegram">
-                        <Send size={16} />
-                        TG
-                      </a>
-                      <a className="cart-link max" href="https://clck.ru/3TFLbT" target="_blank" rel="noreferrer" title="MAX">
-                        {MAX_ICON_SM}
-                        MAX
-                      </a>
-                      <a className="cart-link vk" href="https://vk.com/rus_xbox" target="_blank" rel="noreferrer" title="ВКонтакте">
-                        {VK_ICON_SM}
-                        VK
-                      </a>
-                      <a className="cart-link jivo" href="https://jivo.chat/Mky3kA5Dsf" target="_blank" rel="noreferrer" title="Jivo чат">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <circle cx="12" cy="12" r="10" fill="#4CAF50" />
-                          <path d="M7 9.5C7 8.672 7.672 8 8.5 8h7C16.328 8 17 8.672 17 9.5v4c0 .828-.672 1.5-1.5 1.5H10l-3 2v-2H8.5C7.672 15 7 14.328 7 13.5V9.5Z" fill="white" />
-                        </svg>
-                        Jivo
-                      </a>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                <div className={`cart-links-wrap ${showLinks ? "open" : ""}`}>
+                  <div className="cart-links">
+                    <a className="cart-link tg" href={TG_PM} target="_blank" rel="noreferrer" title="Telegram">
+                      <Send size={16} />
+                      TG
+                    </a>
+                    <a className="cart-link max" href="https://clck.ru/3TFLbT" target="_blank" rel="noreferrer" title="MAX">
+                      {MAX_ICON_SM}
+                      MAX
+                    </a>
+                    <a className="cart-link vk" href="https://vk.com/rus_xbox" target="_blank" rel="noreferrer" title="ВКонтакте">
+                      {VK_ICON_SM}
+                      VK
+                    </a>
+                    <a className="cart-link jivo" href="https://jivo.chat/Mky3kA5Dsf" target="_blank" rel="noreferrer" title="Jivo чат">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" fill="#4CAF50" />
+                        <path d="M7 9.5C7 8.672 7.672 8 8.5 8h7C16.328 8 17 8.672 17 9.5v4c0 .828-.672 1.5-1.5 1.5H10l-3 2v-2H8.5C7.672 15 7 14.328 7 13.5V9.5Z" fill="white" />
+                      </svg>
+                      Jivo
+                    </a>
+                  </div>
+                </div>
+              </motion.div>
             </motion.div>
           </div>
         )}
