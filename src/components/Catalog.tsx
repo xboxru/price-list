@@ -250,7 +250,7 @@ export default function Catalog({ games, loading, cartIds, addToCart, openCart }
                         <span style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
                           {g.isPreorder && (
                             <span className="hot-badge preorder-badge">
-                              📆 ПРЕДЗАКАЗ
+                              ПРЕДЗАКАЗ
                             </span>
                           )}
                           {g.isNew && (
