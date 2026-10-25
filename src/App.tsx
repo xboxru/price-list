@@ -78,11 +78,12 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <Background />
-      <Navbar currentPage={page} setPage={setPage} />
+      <div className="app-wrapper">
+        <Background />
+        <Navbar currentPage={page} setPage={setPage} />
 
-      <div className="shell" style={{ paddingTop: "60px" }}>
-        <Header total={games.length} />
+        <div className="shell" style={{ paddingTop: "60px" }}>
+          <Header total={games.length} />
 
         <div className="nav-tabs">
           <button
@@ -141,6 +142,7 @@ export default function App() {
       <Toast toast={toast} />
       <Cart items={cart} onRemove={removeFromCart} onClear={clearCart} onCopy={copy} openSignal={cartOpenSignal} />
       <ScrollTop />
+      </div>
     </MotionConfig>
   );
 }

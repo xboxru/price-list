@@ -210,7 +210,12 @@
 
 html {
   scroll-behavior: smooth;
-  /* Убираем clip/hidden с html/body, так как это часто ломает sticky/scroll на iOS */
+  background: var(--bg);
+}
+
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -221,10 +226,14 @@ body {
   font-size: 16px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
-  /* Важно для плавного скролла на iOS */
-  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+.app-wrapper {
   position: relative;
   width: 100%;
+  overflow-x: hidden;
+  min-height: 100vh;
 }
 
 ::selection {
