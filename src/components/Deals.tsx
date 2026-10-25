@@ -1,10 +1,7 @@
-import { motion } from "framer-motion";
 import { Flame, Plus, ShoppingCart, Sparkles, Timer } from "lucide-react";
 import { useMemo } from "react";
 import { useCountdown } from "../hooks/useCountdown";
 import { Deal, formatPrice, isoWeek } from "../lib/games";
-
-const ease = [0.2, 0.7, 0.2, 1] as const;
 
 interface DealsProps {
   deals: Deal[];
@@ -56,13 +53,7 @@ export default function Deals({ deals, cartIds, addToCart, openCart }: DealsProp
 
       <div className="deals-grid" key={spotlight.game.id}>
         {/* ── SPOTLIGHT ── */}
-        <motion.article
-          className="deal-spot"
-          initial={{ opacity: 0, y: 34, scale: 0.98 }}
-          whileInView={{ opacity: 1, y: 0, scale: 1 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.85, ease }}
-        >
+        <article className="deal-spot deals-fadein">
           <div className="art">
             <img src={spotlight.cover} alt={spotlight.game.name} loading="eager" />
           </div>
@@ -97,7 +88,7 @@ export default function Deals({ deals, cartIds, addToCart, openCart }: DealsProp
               )}
             </div>
           </div>
-        </motion.article>
+        </article>
 
         {/* ── SIDE CARDS ── */}
         <div className="deal-cards">
@@ -137,12 +128,9 @@ function DealCard({
   onOpenCart: () => void;
 }) {
   return (
-    <motion.article
-      className={`deal-card ${inCart ? "in-cart-row" : ""}`}
-      initial={{ opacity: 0, x: 36 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.6, delay: 0.08 + index * 0.08, ease }}
+    <article
+      className={`deal-card deals-fadein-side ${inCart ? "in-cart-row" : ""}`}
+      style={{ animationDelay: `${0.05 + index * 0.06}s` }}
     >
       <div className="deal-thumb">
         <span className="off">−{Math.round(deal.discount * 100)}%</span>
@@ -165,6 +153,6 @@ function DealCard({
           </button>
         )}
       </div>
-    </motion.article>
+    </article>
   );
 }
