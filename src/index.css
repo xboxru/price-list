@@ -120,21 +120,32 @@
   border-color: var(--accent);
 }
 
+.search-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 108;
+}
+
+/* Панель поиска выезжает слева поверх шапки */
 .nav-search-panel {
   position: fixed;
-  top: 64px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 0;
+  left: 0;
   z-index: 109;
-  width: min(680px, calc(100vw - 24px));
+  width: 100%;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 10px 8px;
 }
 
 .nav-search-inner {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: rgba(7, 7, 12, 0.94);
+  gap: 8px;
+  height: 52px;
+  padding: 0 8px 0 14px;
+  background: rgba(7, 7, 12, 0.96);
   border: 1px solid var(--line-strong);
   border-radius: 16px;
   backdrop-filter: blur(16px);
@@ -153,13 +164,44 @@
   background: transparent;
   border: none;
   outline: none;
+  -webkit-appearance: none;
+  appearance: none;
   color: var(--text);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   font-family: var(--font-body);
 }
 .nav-search-input::placeholder {
   color: var(--muted);
+}
+.nav-search-input::-webkit-search-cancel-button,
+.nav-search-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  display: none;
+}
+
+.nav-search-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: all 0.2s;
+}
+.nav-search-close:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* Планшеты и десктоп: панель слева, у края контейнера шапки */
+@media (min-width: 768px) {
+  .nav-search-panel {
+    width: min(520px, 100%);
+    padding: 8px 0 8px max(16px, calc((100vw - 1180px) / 2 + clamp(16px, 4vw, 32px) - 4px));
+    padding-right: 12px;
+  }
 }
 
 .nav-search-go {
@@ -1318,28 +1360,14 @@ img {
   white-space: nowrap;
 }
 
-@media (max-width: 640px) {
-  .nav-search-panel {
-    top: 60px;
-    width: calc(100vw - 20px);
-  }
-
-  .nav-search-inner {
-    grid-template-columns: 16px 1fr auto;
-    gap: 8px;
-    padding: 9px 10px;
-    border-radius: 14px;
-  }
-
-  .nav-search-input {
-    font-size: 14px;
-  }
-
+@media (max-width: 380px) {
   .nav-search-go {
-    padding: 8px 12px;
+    padding: 8px 10px;
     font-size: 12px;
   }
+}
 
+@media (max-width: 640px) {
   .store-cards-grid {
     grid-template-columns: 1fr;
   }

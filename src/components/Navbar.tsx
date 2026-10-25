@@ -126,32 +126,54 @@ export default function Navbar({ currentPage, setPage, onSearch }: NavbarProps) 
 
       <AnimatePresence>
         {searchOpen && (
-          <motion.div
-            className="nav-search-panel"
-            initial={{ opacity: 0, y: -14 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="nav-search-inner">
-              <Search size={18} className="nav-search-icon" />
-              <input
-                className="nav-search-input"
-                type="text"
-                placeholder="Поиск игры…"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSearchSubmit();
-                  if (e.key === "Escape") setSearchOpen(false);
-                }}
-                autoFocus
-              />
-              <button className="nav-search-go" onClick={handleSearchSubmit}>
-                Найти
-              </button>
-            </div>
-          </motion.div>
+          <>
+            <motion.div
+              key="search-overlay"
+              className="search-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setSearchOpen(false)}
+            />
+            <motion.div
+              key="search-panel"
+              className="nav-search-panel"
+              role="search"
+              initial={{ x: "-100%", opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: "-100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 28, stiffness: 260 }}
+            >
+              <div className="nav-search-inner">
+                <Search size={18} className="nav-search-icon" />
+                <input
+                  className="nav-search-input"
+                  type="search"
+                  enterKeyHint="search"
+                  autoComplete="off"
+                  placeholder="Поиск игры…"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSearchSubmit();
+                    if (e.key === "Escape") setSearchOpen(false);
+                  }}
+                  autoFocus
+                />
+                <button className="nav-search-go" onClick={handleSearchSubmit}>
+                  Найти
+                </button>
+                <button
+                  className="nav-search-close"
+                  onClick={() => setSearchOpen(false)}
+                  aria-label="Закрыть поиск"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
