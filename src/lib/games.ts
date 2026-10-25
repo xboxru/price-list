@@ -46,9 +46,12 @@ export interface Deal extends DealDef {
  */
 const DEALS_COUNT = 6;
 
-/** Диапазон скидок (от–до), назначается рандомно каждой игре */
-const DISCOUNT_MIN = 0.15;
-const DISCOUNT_MAX = 0.45;
+/**
+ * Насколько повышаем цену перед тем как показать «скидку недели».
+ * Итоговая старая цена = текущая цена + случайная надбавка в этом диапазоне.
+ */
+const DEAL_BUMP_MIN = 1000;
+const DEAL_BUMP_MAX = 1500;
 
 /**
  * Обложки для карточек скидок.
@@ -176,9 +179,16 @@ export function resolveDeals(games: Game[]): Deal[] {
 
   for (let i = 0; i < picked.length; i++) {
     const game = picked[i];
-    const discount = DISCOUNT_MIN + rand() * (DISCOUNT_MAX - DISCOUNT_MIN);
-    const discountRounded = Math.round(discount * 20) / 20; // шаг 5%
-    const saleValue = roundTen(game.priceValue * (1 - discountRounded));
+
+    // Текущая цена из прайса становится «ценой со скидкой»
+    const saleValue = game.priceValue;
+
+    // Формируем старую цену: повышаем её на случайную сумму 1000–1500 ₽
+    const bump = Math.round(DEAL_BUMP_MIN + rand() * (DEAL_BUMP_MAX - DEAL_BUMP_MIN));
+    const oldValue = roundTen(game.priceValue + bump);
+
+    // Показываем процент скидки относительно старой цены
+    const discountRounded = Math.round(((oldValue - saleValue) / oldValue) * 100) / 100;
 
     deals.push({
       match: game.name,
@@ -188,7 +198,7 @@ export function resolveDeals(games: Game[]): Deal[] {
       game,
       saleValue,
       salePrice: formatPrice(saleValue),
-      basePrice: game.price,
+      basePrice: formatPrice(oldValue),
     });
   }
 
