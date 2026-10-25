@@ -76,11 +76,23 @@ export default function App() {
     setCartOpenSignal((n) => n + 1);
   }, []);
 
+  const openSearch = useCallback((query: string) => {
+    setPage("games");
+    window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("catalog-search", { detail: query }));
+      const input = document.getElementById("catalogSearch") as HTMLInputElement | null;
+      if (input) {
+        input.scrollIntoView({ behavior: "smooth", block: "center" });
+        window.setTimeout(() => input.focus(), 250);
+      }
+    }, 80);
+  }, []);
+
   return (
     <MotionConfig reducedMotion="user">
       <div className="app-wrapper">
         <Background />
-        <Navbar currentPage={page} setPage={setPage} />
+        <Navbar currentPage={page} setPage={setPage} onSearch={openSearch} />
 
         <div className="shell" style={{ paddingTop: "60px" }}>
           <Header total={games.length} />

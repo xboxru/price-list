@@ -106,6 +106,16 @@ export default function Catalog({ games, loading, cartIds, addToCart, openCart }
   const [visible, setVisible] = useState(CHUNK);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const custom = event as CustomEvent<string>;
+      setQuery(custom.detail ?? "");
+      setVisible(CHUNK);
+    };
+    window.addEventListener("catalog-search", handler as EventListener);
+    return () => window.removeEventListener("catalog-search", handler as EventListener);
+  }, []);
+
   const filtered = useMemo(() => {
     const q = normalize(query);
     let list = q ? games.filter((g) => g.search.includes(q)) : games.slice();
@@ -170,6 +180,7 @@ export default function Catalog({ games, loading, cartIds, addToCart, openCart }
         <div className="search-wrap">
           <Search size={17} />
           <input
+            id="catalogSearch"
             className="search-input"
             type="text"
             placeholder="Поиск по названию — например, «witcher»…"

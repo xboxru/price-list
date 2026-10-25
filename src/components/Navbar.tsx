@@ -1,11 +1,12 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Gamepad2, Layers3, Menu, Send, X, LayoutGrid } from "lucide-react";
+import { ChevronDown, Gamepad2, Layers3, Menu, Search, Send, X, LayoutGrid } from "lucide-react";
 import { useState, useEffect } from "react";
 import { TG_PM } from "../lib/games";
 
 interface NavbarProps {
   currentPage: "games" | "subs" | "collections";
   setPage: (page: "games" | "subs" | "collections") => void;
+  onSearch: (query: string) => void;
 }
 
 function MenuContact() {
@@ -63,8 +64,10 @@ function MenuContact() {
   );
 }
 
-export default function Navbar({ currentPage, setPage }: NavbarProps) {
+export default function Navbar({ currentPage, setPage, onSearch }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -79,12 +82,26 @@ export default function Navbar({ currentPage, setPage }: NavbarProps) {
     { id: "subs", label: "Подписки", icon: Gamepad2 },
   ];
 
-  const toggleMenu = () => setIsOpen(!isOpen);
+  const toggleMenu = () => {
+    setIsOpen(!isOpen);
+    setSearchOpen(false);
+  };
 
   const handlePageSelect = (page: "games" | "subs" | "collections") => {
     setPage(page);
     setIsOpen(false);
+    setSearchOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleSearchToggle = () => {
+    setSearchOpen((v) => !v);
+    setIsOpen(false);
+  };
+
+  const handleSearchSubmit = () => {
+    onSearch(searchValue.trim());
+    setSearchOpen(false);
   };
 
   return (
@@ -96,11 +113,47 @@ export default function Navbar({ currentPage, setPage }: NavbarProps) {
             <span>XP BOX</span>
           </div>
 
-          <button className="burger-btn" onClick={toggleMenu} aria-label="Меню">
-            {isOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          <div className="navbar-actions">
+            <button className="nav-search-btn" onClick={handleSearchToggle} aria-label="Поиск">
+              <Search size={20} />
+            </button>
+            <button className="burger-btn" onClick={toggleMenu} aria-label="Меню">
+              {isOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
       </nav>
+
+      <AnimatePresence>
+        {searchOpen && (
+          <motion.div
+            className="nav-search-panel"
+            initial={{ opacity: 0, y: -14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="nav-search-inner">
+              <Search size={18} className="nav-search-icon" />
+              <input
+                className="nav-search-input"
+                type="text"
+                placeholder="Поиск игры…"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSearchSubmit();
+                  if (e.key === "Escape") setSearchOpen(false);
+                }}
+                autoFocus
+              />
+              <button className="nav-search-go" onClick={handleSearchSubmit}>
+                Найти
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {isOpen && (

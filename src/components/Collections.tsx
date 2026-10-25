@@ -1,8 +1,5 @@
-import { motion } from "framer-motion";
 import { Plus, ShoppingCart, Sparkles } from "lucide-react";
 import { COLLECTION_CARDS } from "../lib/collections";
-
-const ease = [0.2, 0.7, 0.2, 1] as const;
 
 interface CollectionsProps {
   cartIds: Set<string>;
@@ -44,13 +41,10 @@ export default function Collections({ cartIds, addToCart, openCart }: Collection
           const inCart = cartIds.has(key);
 
           return (
-            <motion.article
+            <article
               key={key}
-              className={`store-card ${inCart ? "in-cart-row" : ""}`}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.45, delay: index * 0.04, ease }}
+              className={`store-card store-card-fadein ${inCart ? "in-cart-row" : ""}`}
+              style={{ animationDelay: `${index * 0.05}s` }}
             >
               <div className="store-thumb-wrap">
                 <img className="store-thumb" src={item.cover} alt={item.title} loading="lazy" />
@@ -91,7 +85,7 @@ export default function Collections({ cartIds, addToCart, openCart }: Collection
                   )}
                 </div>
               </div>
-            </motion.article>
+            </article>
           );
         })}
       </div>
