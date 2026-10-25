@@ -37,7 +37,13 @@ function SubCard({ plan, index, accent = "green", inCart = false, onAddToCart, o
         </div>
       )}
       <div className="sub-header">
-        {isPs && <div className="sub-series">{plan.name}</div>}
+        {isPs && (
+          <div className={`sub-series ${
+            plan.name.includes("Deluxe") ? "sub-series-deluxe" :
+            plan.name.includes("Extra") ? "sub-series-extra" :
+            "sub-series-essential"
+          }`}>{plan.name}</div>
+        )}
         <h3>{plan.duration}</h3>
         <div className="sub-price-row">
           <div className="sub-price">{formatPrice(plan.price)}</div>

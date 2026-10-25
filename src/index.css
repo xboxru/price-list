@@ -35,12 +35,15 @@
   padding: 12px 0;
   transition: all 0.3s ease;
   border-bottom: 1px solid transparent;
+  /* Ускорение для iOS */
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .navbar.scrolled {
   background: rgba(7, 7, 12, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line-strong);
   padding: 8px 0;
 }
@@ -207,7 +210,7 @@
 
 html {
   scroll-behavior: smooth;
-  overflow-x: clip;
+  /* Убираем clip/hidden с html/body, так как это часто ломает sticky/scroll на iOS */
 }
 
 body {
@@ -218,7 +221,10 @@ body {
   font-size: 16px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
-  overflow-x: clip;
+  /* Важно для плавного скролла на iOS */
+  overflow-x: hidden;
+  position: relative;
+  width: 100%;
 }
 
 ::selection {
@@ -267,6 +273,9 @@ img {
   inset: 0;
   z-index: 0;
   pointer-events: none;
+  /* Аппаратное ускорение для фона */
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
 }
 
 .bg-grid {
@@ -277,13 +286,26 @@ img {
     linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
   background-size: 56px 56px;
   mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, black 30%, transparent 75%);
+  /* Ускорение рендеринга сетки */
+  transform: translateZ(0);
 }
 
 .bg-glow {
   position: absolute;
   border-radius: 50%;
-  filter: blur(110px);
-  opacity: 0.5;
+  /* Уменьшаем блюр для iOS, так как 110px слишком тяжело */
+  filter: blur(80px);
+  opacity: 0.4;
+  will-change: transform;
+}
+
+/* Оптимизация для мобильных: отключаем тяжелые фильтры и анимации */
+@media (max-width: 768px) {
+  .bg-glow {
+    filter: blur(50px);
+    opacity: 0.3;
+    animation: none !important; /* Отключаем дрифт на мобилах */
+  }
 }
 .bg-glow-a {
   width: 640px;
@@ -326,6 +348,7 @@ img {
   max-width: 1180px;
   margin: 0 auto;
   padding: 0 clamp(16px, 4vw, 32px);
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ============================================================
@@ -1006,6 +1029,7 @@ img {
   gap: 44px;
   width: max-content;
   animation: marquee 26s linear infinite;
+  will-change: transform;
 }
 .marquee:hover .marquee-track { animation-play-state: paused; }
 @keyframes marquee {
@@ -1259,13 +1283,28 @@ img {
   margin: 0 0 10px;
   padding: 5px 10px;
   border-radius: 999px;
-  background: rgba(0, 112, 209, 0.12);
-  border: 1px solid rgba(0, 112, 209, 0.22);
-  color: #66b3ff;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.sub-series-essential {
+  background: rgba(0, 112, 209, 0.12);
+  border: 1px solid rgba(0, 112, 209, 0.22);
+  color: #66b3ff;
+}
+
+.sub-series-extra {
+  background: rgba(167, 139, 250, 0.12);
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  color: #b8a4fb;
+}
+
+.sub-series-deluxe {
+  background: rgba(255, 170, 0, 0.12);
+  border: 1px solid rgba(255, 170, 0, 0.25);
+  color: #ffbb33;
 }
 
 .sub-header h3 {
@@ -1456,10 +1495,13 @@ img {
   border: 1px solid var(--line-strong);
   border-radius: 18px;
   padding: 10px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   box-shadow: 0 18px 44px -20px rgba(0, 0, 0, 0.75);
   margin-bottom: 14px;
+  /* Принудительное аппаратное ускорение для sticky */
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .search-wrap {
