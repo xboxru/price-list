@@ -80,7 +80,7 @@ export default function Deals({ deals, cartIds, addToCart, openCart }: DealsProp
               <span className="price-old">{spotlight.basePrice}</span>
               <span className="price-new">{spotlight.salePrice}</span>
               <span className="price-save">
-                Выгода {formatPrice(spotlight.game.priceValue - spotlight.saleValue)}
+                Выгода {formatPrice(spotlight.baseValue - spotlight.saleValue)}
               </span>
             </div>
             <div className="btn-row">

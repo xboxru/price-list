@@ -33,6 +33,7 @@ export interface Deal extends DealDef {
   game: Game;
   saleValue: number;    // discounted price rounded to tens
   salePrice: string;    // formatted "1 850 ₽"
+  baseValue: number;    // original high price before discount
   basePrice: string;    // formatted original
 }
 
@@ -198,6 +199,7 @@ export function resolveDeals(games: Game[]): Deal[] {
       game,
       saleValue,
       salePrice: formatPrice(saleValue),
+      baseValue: oldValue,
       basePrice: formatPrice(oldValue),
     });
   }
