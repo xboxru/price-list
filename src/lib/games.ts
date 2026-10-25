@@ -37,46 +37,40 @@ export interface Deal extends DealDef {
 }
 
 // ---------------------------------------------------------------------------
-// Weekly deals — curated selection. Spotlight rotates each calendar week.
+// Weekly deals — auto-generated from the price list each week.
 // ---------------------------------------------------------------------------
 
-export const DEAL_DEFS: DealDef[] = [
-  {
-    match: "ELDEN RING NIGHTREIGN XBOX ONE|XS",
-    discount: 0.3,
-    cover: "./covers/eldenring.jpg",
-    vibe: "Мрачное фэнтези · Кооператив",
-  },
-  {
-    match: "RED DEAD REDEMPTION 2 XBOX ONE|XS",
-    discount: 0.45,
-    cover: "./covers/rdr2.jpg",
-    vibe: "Вестерн · Открытый мир",
-  },
-  {
-    match: "GRAND THEFT AUTO V GTA 5 2022 XBOX ONE|XS",
-    discount: 0.35,
-    cover: "./covers/gta.jpg",
-    vibe: "Криминальная сага · Лос-Сантос",
-  },
-  {
-    match: "HOGWARTS LEGACY - DIGITAL DELUXE EDITION XBOX",
-    discount: 0.4,
-    cover: "./covers/hogwarts.jpg",
-    vibe: "Магия · Хогвартс XIX века",
-  },
-  {
-    match: "BLACK MYTH: WUKONG XBOX SERIES X|S",
-    discount: 0.25,
-    cover: "./covers/wukong.jpg",
-    vibe: "Мифология · Экшен-RPG",
-  },
-  {
-    match: "BALDURS GATE 3 - DIGITAL DELUXE EDITION XBOX ONE|XS",
-    discount: 0.33,
-    cover: "./covers/bg3.jpg",
-    vibe: "Легендарная RPG · D&D",
-  },
+/**
+ * Количество игр в «скидках недели».
+ * Каждую неделю набор меняется автоматически.
+ */
+const DEALS_COUNT = 6;
+
+/** Диапазон скидок (от–до), назначается рандомно каждой игре */
+const DISCOUNT_MIN = 0.15;
+const DISCOUNT_MAX = 0.45;
+
+/**
+ * Обложки для карточек скидок.
+ * Положите свои картинки в public/covers/ и пропишите пути здесь.
+ * Если обложек меньше чем DEALS_COUNT, они будут повторяться.
+ */
+const DEAL_COVERS = [
+  "./covers/eldenring.jpg",
+  "./covers/rdr2.jpg",
+  "./covers/gta.jpg",
+  "./covers/hogwarts.jpg",
+  "./covers/wukong.jpg",
+  "./covers/bg3.jpg",
+];
+
+const DEAL_VIBES = [
+  "Экшен · Приключения",
+  "RPG · Открытый мир",
+  "Шутер · Мультиплеер",
+  "Экшен · Сюжет",
+  "RPG · Фэнтези",
+  "Кооператив · Экшен",
 ];
 
 // ---------------------------------------------------------------------------
@@ -143,29 +137,61 @@ export async function fetchGames(signal?: AbortSignal): Promise<Game[]> {
 export const roundTen = (v: number) => Math.round(v / 10) * 10;
 
 /**
- * Matches deal definitions against live sheet data.
- * Deals whose game is not found are simply skipped, so the section
- * never breaks if the sheet is edited.
+ * Простой сидированный PRNG (mulberry32).
+ * Один и тот же сид даёт одну и ту же последовательность,
+ * поэтому в течение недели набор скидок не меняется.
+ */
+function seededRandom(seed: number) {
+  let t = seed + 0x6D2B79F5;
+  return () => {
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Автоматически выбирает DEALS_COUNT игр из прайса на основе
+ * текущей календарной недели. Каждый понедельник набор обновляется.
  */
 export function resolveDeals(games: Game[]): Deal[] {
+  if (games.length < DEALS_COUNT) return [];
+
+  // Фильтруем игры: берём только с ценой >= 500 ₽
+  const eligible = games.filter((g) => g.priceValue >= 500);
+  if (eligible.length < DEALS_COUNT) return [];
+
+  const week = isoWeek();
+  const rand = seededRandom(week * 7919); // простое число для лучшего разброса
+
+  // Перемешиваем копию массива по Фишеру-Йетсу с сидом
+  const shuffled = [...eligible];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  const picked = shuffled.slice(0, DEALS_COUNT);
   const deals: Deal[] = [];
-  const used = new Set<number>();
-  for (const def of DEAL_DEFS) {
-    const needle = def.match.toUpperCase();
-    const game = games.find(
-      (g) => !used.has(g.id) && g.name.toUpperCase().includes(needle)
-    );
-    if (!game) continue;
-    used.add(game.id);
-    const saleValue = roundTen(game.priceValue * (1 - def.discount));
+
+  for (let i = 0; i < picked.length; i++) {
+    const game = picked[i];
+    const discount = DISCOUNT_MIN + rand() * (DISCOUNT_MAX - DISCOUNT_MIN);
+    const discountRounded = Math.round(discount * 20) / 20; // шаг 5%
+    const saleValue = roundTen(game.priceValue * (1 - discountRounded));
+
     deals.push({
-      ...def,
+      match: game.name,
+      discount: discountRounded,
+      cover: DEAL_COVERS[i % DEAL_COVERS.length],
+      vibe: DEAL_VIBES[i % DEAL_VIBES.length],
       game,
       saleValue,
       salePrice: formatPrice(saleValue),
       basePrice: game.price,
     });
   }
+
   return deals;
 }
 
