@@ -1,6 +1,8 @@
 import { Flame, Plus, ShoppingCart, Sparkles, Timer } from "lucide-react";
 import { useMemo } from "react";
 import { useCountdown } from "../hooks/useCountdown";
+import CoverImage from "./CoverImage";
+import { useGameCover } from "../hooks/useGameCover";
 import { Deal, formatPrice, isoWeek } from "../lib/games";
 
 interface DealsProps {
@@ -8,6 +10,12 @@ interface DealsProps {
   cartIds: Set<string>;
   addToCart: (id: string, name: string, price: string) => void;
   openCart: () => void;
+}
+
+/** Жанры игры из RAWG; пока не загрузились — нейтральная подпись */
+function DealVibe({ title, fallback }: { title: string; fallback: string }) {
+  const { genres } = useGameCover(title);
+  return <>{genres.length ? genres.join(" · ") : fallback}</>;
 }
 
 export default function Deals({ deals, cartIds, addToCart, openCart }: DealsProps) {
@@ -55,7 +63,7 @@ export default function Deals({ deals, cartIds, addToCart, openCart }: DealsProp
         {/* ── SPOTLIGHT ── */}
         <article className="deal-spot deals-fadein">
           <div className="art">
-            <img src={spotlight.cover} alt={spotlight.game.name} loading="eager" />
+            <CoverImage title={spotlight.game.name} cover={spotlight.cover} loading="eager" />
           </div>
           <div className="deal-spot-body">
             <span className="discount-badge pulse">
@@ -65,7 +73,7 @@ export default function Deals({ deals, cartIds, addToCart, openCart }: DealsProp
             <h3>{spotlight.game.name}</h3>
             <div className="deal-vibe">
               <Sparkles size={14} />
-              {spotlight.vibe}
+              <DealVibe title={spotlight.game.name} fallback={spotlight.vibe} />
             </div>
             <div className="deal-price-row">
               <span className="price-old">{spotlight.basePrice}</span>
@@ -134,11 +142,13 @@ function DealCard({
     >
       <div className="deal-thumb">
         <span className="off">−{Math.round(deal.discount * 100)}%</span>
-        <img src={deal.cover} alt={deal.game.name} loading="lazy" />
+        <CoverImage title={deal.game.name} cover={deal.cover} />
       </div>
       <div className="deal-info">
         <h4>{deal.game.name}</h4>
-        <div className="vibe">{deal.vibe}</div>
+        <div className="vibe">
+          <DealVibe title={deal.game.name} fallback={deal.vibe} />
+        </div>
       </div>
       <div className="deal-side">
         <span className="old">{deal.basePrice}</span>

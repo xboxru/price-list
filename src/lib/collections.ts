@@ -1,109 +1,102 @@
+import type { Game } from "./games";
+import { seededRandom } from "./games";
+import { normalizeTitle } from "./coverLookup";
+
 export interface CollectionCard {
   id: string;
+  /** Название для показа (без платформы) */
   title: string;
   price: string;
-  note?: string;
-  discount: string;
   platforms: string[];
-  cover: string;
+  badge: string;
   collection: string;
+  /** Необязательно: своя обложка. Иначе подбирается автоматически по названию. */
+  cover?: string;
+  /** Необязательно: своё поисковое слово для автоподбора обложки. */
+  coverQuery?: string;
 }
 
 /**
  * ============================================================
- * ПОДБОРКИ ОТ МАГАЗИНА
- * Добавляйте и редактируйте карточки здесь
+ * ПОДБОРКА ДНЯ — собирается автоматически из прайса
  * ============================================================
  */
-export const COLLECTION_CARDS: CollectionCard[] = [
-  {
-    id: "elden-nightreign",
-    title: "ELDEN RING NIGHTREIGN",
-    price: "2641 ₽",
-    note: "Мрачное фэнтези и кооперативные забеги",
-    discount: "−30%",
-    platforms: ["Xbox One", "Xbox Series X|S"],
-    cover: "./covers/eldenring.jpg",
-    collection: "Soulslike",
-  },
-  {
-    id: "wukong",
-    title: "BLACK MYTH: WUKONG",
-    price: "3267 ₽",
-    note: "Эпичные боссы и китайская мифология",
-    discount: "−25%",
-    platforms: ["Xbox Series X|S"],
-    cover: "./covers/wukong.jpg",
-    collection: "Soulslike",
-  },
-  {
-    id: "rdr2",
-    title: "RED DEAD REDEMPTION 2",
-    price: "1690 ₽",
-    note: "Большой открытый мир и лучший вестерн",
-    discount: "−45%",
-    platforms: ["Xbox One", "Xbox Series X|S"],
-    cover: "./covers/rdr2.jpg",
-    collection: "Открытый мир",
-  },
-  {
-    id: "gta5",
-    title: "GRAND THEFT AUTO V",
-    price: "2408 ₽",
-    note: "Классика Лос-Сантоса и море контента",
-    discount: "−35%",
-    platforms: ["Xbox One", "Xbox Series X|S"],
-    cover: "./covers/gta.jpg",
-    collection: "Открытый мир",
-  },
-  {
-    id: "hogwarts",
-    title: "HOGWARTS LEGACY DELUXE",
-    price: "1327 ₽",
-    note: "Магический мир Хогвартса и приключения",
-    discount: "−40%",
-    platforms: ["Xbox One", "Xbox Series X|S"],
-    cover: "./covers/hogwarts.jpg",
-    collection: "Открытый мир",
-  },
-  {
-    id: "bg3",
-    title: "BALDUR'S GATE 3 DELUXE",
-    price: "3794 ₽",
-    note: "Одна из лучших RPG последних лет",
-    discount: "−33%",
-    platforms: ["Xbox Series X|S"],
-    cover: "./covers/bg3.jpg",
-    collection: "RPG",
-  },
-  {
-    id: "it-takes-two",
-    title: "IT TAKES TWO",
-    price: "1297 ₽",
-    note: "Идеальная игра для совместного прохождения",
-    discount: "−15%",
-    platforms: ["Xbox One", "Xbox Series X|S"],
-    cover: "./covers/hogwarts.jpg",
-    collection: "Кооператив",
-  },
-  {
-    id: "diablo4",
-    title: "DIABLO IV",
-    price: "1527 ₽",
-    note: "Лут, сезоны и совместная игра",
-    discount: "−18%",
-    platforms: ["Xbox One", "Xbox Series X|S"],
-    cover: "./covers/wukong.jpg",
-    collection: "Кооператив",
-  },
-  {
-    id: "halo-infinite",
-    title: "HALO INFINITE",
-    price: "2090 ₽",
-    note: "Шутер, кампания и мультиплеер",
-    discount: "−22%",
-    platforms: ["Xbox One", "Xbox Series X|S", "PC"],
-    cover: "./covers/eldenring.jpg",
-    collection: "Шутеры",
-  },
-];
+
+/** Сколько игр в подборке */
+export const COLLECTION_COUNT = 12;
+
+/** Из скольких самых дешёвых игр прайса выбираем (чем больше, тем разнообразнее по дням) */
+const POOL_SIZE = 48;
+
+/** Ниже этой цены не берём (отсекает дополнения, валюту и т.п.) */
+const MIN_PRICE = 300;
+
+/** Названия, которые не считаем играми (дополнения, подписки, пополнения) */
+const EXCLUDE_RE =
+  /dlc|дополнени|набор|pack|coins|points|монет|валют|подписк|game pass|ea play|gift|подарочн|карта оплаты|top.?up|season pass|battle pass/i;
+
+/** Ключ текущего дня в локальном времени, например 20261026 */
+export function dayKey(date = new Date()): number {
+  return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
+}
+
+function detectPlatforms(name: string): string[] {
+  const n = name.toLowerCase();
+  const list: string[] = [];
+  if (/xbox/.test(n)) {
+    const one = /xbox\s*one|one\s*\|\s*xs/.test(n);
+    const series = /series|x\s*\|\s*s|\|\s*xs/.test(n);
+    if (one) list.push("Xbox One");
+    if (series) list.push("Xbox Series X|S");
+    if (!one && !series) list.push("Xbox");
+  }
+  if (/\+\s*pc|\bpc\b/.test(n)) list.push("PC");
+  return list.length ? list : ["Xbox"];
+}
+
+function displayTitle(name: string): string {
+  return (
+    name
+      .replace(/\s*[|\-–—]?\s*xbox\b.*$/i, "")
+      .replace(/[-–—]?\s*цифровая версия/gi, "")
+      .replace(/[-–—|\s]+$/g, "")
+      .trim() || name
+  );
+}
+
+/**
+ * Каждый день выбирает COLLECTION_COUNT игр из самых дешёвых позиций прайса.
+ * Набор меняется раз в сутки и одинаков для всех посетителей в этот день.
+ */
+export function resolveCollection(games: Game[], date = new Date()): CollectionCard[] {
+  const eligible = games
+    .filter((g) => g.priceValue >= MIN_PRICE && !g.isPreorder && !EXCLUDE_RE.test(g.name))
+    .sort((a, b) => a.priceValue - b.priceValue || a.id - b.id);
+
+  // Убираем дубли разных изданий одной игры (остаётся самое дешёвое)
+  const seen = new Set<string>();
+  const pool: Game[] = [];
+  for (const g of eligible) {
+    const key = normalizeTitle(g.name) || g.name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    pool.push(g);
+    if (pool.length >= POOL_SIZE) break;
+  }
+
+  // Перемешиваем с сидом от даты: в течение дня порядок не меняется
+  const rand = seededRandom(dayKey(date) * 7919);
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+
+  return pool.slice(0, COLLECTION_COUNT).map((g) => ({
+    id: String(g.id),
+    title: displayTitle(g.name),
+    price: g.price,
+    platforms: detectPlatforms(g.name),
+    badge: "Низкая цена",
+    collection: "Подборка дня",
+  }));
+}

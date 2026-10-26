@@ -25,7 +25,9 @@ export interface DealDef {
   match: string;
   /** 0..1 fraction, e.g. 0.45 === -45% */
   discount: number;
-  cover: string;
+  /** Необязательно: если не задана, обложка подбирается автоматически по названию */
+  cover?: string;
+  /** Подпись под названием. Реальные жанры подставляются автоматически в интерфейсе. */
   vibe: string;
 }
 
@@ -54,28 +56,6 @@ const DEALS_COUNT = 6;
 const DEAL_BUMP_MIN = 1000;
 const DEAL_BUMP_MAX = 1500;
 
-/**
- * Обложки для карточек скидок.
- * Положите свои картинки в public/covers/ и пропишите пути здесь.
- * Если обложек меньше чем DEALS_COUNT, они будут повторяться.
- */
-const DEAL_COVERS = [
-  "./covers/eldenring.jpg",
-  "./covers/rdr2.jpg",
-  "./covers/gta.jpg",
-  "./covers/hogwarts.jpg",
-  "./covers/wukong.jpg",
-  "./covers/bg3.jpg",
-];
-
-const DEAL_VIBES = [
-  "Экшен · Приключения",
-  "RPG · Открытый мир",
-  "Шутер · Мультиплеер",
-  "Экшен · Сюжет",
-  "RPG · Фэнтези",
-  "Кооператив · Экшен",
-];
 
 // ---------------------------------------------------------------------------
 // Parsing helpers
@@ -145,7 +125,7 @@ export const roundTen = (v: number) => Math.round(v / 10) * 10;
  * Один и тот же сид даёт одну и ту же последовательность,
  * поэтому в течение недели набор скидок не меняется.
  */
-function seededRandom(seed: number) {
+export function seededRandom(seed: number) {
   let t = seed + 0x6D2B79F5;
   return () => {
     t = Math.imul(t ^ (t >>> 15), t | 1);
@@ -194,8 +174,7 @@ export function resolveDeals(games: Game[]): Deal[] {
     deals.push({
       match: game.name,
       discount: discountRounded,
-      cover: DEAL_COVERS[i % DEAL_COVERS.length],
-      vibe: DEAL_VIBES[i % DEAL_VIBES.length],
+      vibe: "Скидка недели",
       game,
       saleValue,
       salePrice: formatPrice(saleValue),

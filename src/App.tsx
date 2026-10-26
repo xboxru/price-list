@@ -141,7 +141,7 @@ export default function App() {
             <Catalog games={games} loading={loading} cartIds={cartIds} addToCart={addToCart} openCart={openCart} />
           </>
         ) : page === "collections" ? (
-          <Collections cartIds={cartIds} addToCart={addToCart} openCart={openCart} />
+          <Collections games={games} cartIds={cartIds} addToCart={addToCart} openCart={openCart} />
         ) : (
           <Subscriptions cartIds={cartIds} addToCart={addToCart} openCart={openCart} />
         )}
