@@ -6,14 +6,14 @@
  *   1. скачивает прайс (тот же Google Sheet, что и сайт);
  *   2. теми же функциями, что и сайт, определяет игры подборки и скидок
  *      на вчера, сегодня и ближайшие дни (чтобы любой часовой пояс был покрыт);
- *   3. для новых игр ищет обложку и жанры в RAWG (https://rawg.io/apidocs);
+ *   3. для новых игр ищет обложку и жанры сначала в RAWG, а если не нашлось — в Steam;
  *   4. сохраняет картинки в папку сайта. Посетители грузят их с вашего же домена,
  *      поэтому VPN не нужен.
  *
  * Локально: npm run covers   (нужен Node 22+)
  *
- * Нужен секрет репозитория RAWG_KEY (бесплатный ключ с https://rawg.io/apidocs).
- * Локально: RAWG_KEY=ваш_ключ npm run covers
+ * Секрет репозитория RAWG_KEY (бесплатный ключ с https://rawg.io/apidocs) включает RAWG.
+ * Без него работает только Steam. Локально: RAWG_KEY=ваш_ключ npm run covers
  */
 
 import fs from "node:fs/promises";
@@ -25,14 +25,15 @@ import { resolveCollection } from "../src/lib/collections.ts";
 import { resolveDeals } from "../src/lib/games.ts";
 
 const UA = "Mozilla/5.0 (compatible; xpbox-cover-bot/1.0)";
-const DELAY_MS = 300; // небольшая пауза между запросами к RAWG
+const DELAY_MS = 300; // пауза между запросами к RAWG
+const STEAM_DELAY_MS = 900; // у Steam есть лимиты, поэтому пауза больше
 const TIME_BUDGET_MS = 20 * 60 * 1000; // не дольше 20 минут за запуск
 const RETRY_MISS_AFTER_MS = 7 * 24 * 60 * 60 * 1000; // не нашли — пробуем снова через неделю
 /** На сколько дней вперёд/назад считаем наборы: вчера, сегодня, завтра, послезавтра */
 const DAY_OFFSETS = [-1, 0, 1, 2];
 /** Менять при улучшении поиска: тогда ранее ненайденные игры будут искаться заново */
-const SEARCH_VERSION = 4;
-const MIN_MATCH = 0.6; // доля слов запроса, которая должна совпасть с названием в RAWG
+const SEARCH_VERSION = 5;
+const MIN_MATCH = 0.6; // доля слов запроса, которая должна совпасть с найденным названием
 
 const GENRES_RU = {
   Action: "Экшен",
@@ -106,6 +107,48 @@ async function downloadImage(urls, file) {
   return false;
 }
 
+const steamImageUrls = (id) => [
+  `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${id}/header.jpg`,
+  `https://cdn.cloudflare.steamstatic.com/steam/apps/${id}/header.jpg`,
+  `https://cdn.akamai.steamstatic.com/steam/apps/${id}/header.jpg`,
+];
+
+async function steamGenres(id) {
+  try {
+    const res = await get(
+      `https://store.steampowered.com/api/appdetails?appids=${id}&l=english&cc=us`
+    );
+    const data = (await res.json())?.[id]?.data;
+    return mapGenres(data?.genres?.map((g) => g.description));
+  } catch {
+    return [];
+  }
+}
+
+/** Запасной источник: Steam (поиск + картинка + жанры, 3 запроса на игру) */
+async function fromSteam(term, imagesDir, forcedId) {
+  let id = forcedId;
+  if (!id) {
+    const res = await get(
+      `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(term)}&l=english&cc=us`
+    );
+    if (!res.ok) return null;
+    const items = ((await res.json()).items ?? []).filter((i) => !i.type || i.type === "app");
+    const t = norm(term);
+    const best =
+      items.find((i) => norm(i.name) === t) ??
+      items
+        .map((i) => ({ i, score: overlap(term, i.name) }))
+        .sort((x, y) => y.score - x.score)[0]?.i;
+    if (!best || (norm(best.name) !== t && overlap(term, best.name) < MIN_MATCH)) return null;
+    id = best.id;
+    await sleep(STEAM_DELAY_MS);
+  }
+  const file = `steam-${id}.jpg`;
+  if (!(await downloadImage(steamImageUrls(id), path.join(imagesDir, file)))) return null;
+  return { image: `images/${file}`, genres: await steamGenres(id) };
+}
+
 async function saveRawgGame(game, imagesDir) {
   if (!game?.background_image) return null;
   // RAWG умеет отдавать уменьшенную копию: файл ~50 КБ вместо нескольких сотен
@@ -119,6 +162,7 @@ async function saveRawgGame(game, imagesDir) {
 /** Поиск игры в RAWG по названию (1 запрос на игру + скачивание картинки) */
 async function fromRawg(term, imagesDir) {
   const key = process.env.RAWG_KEY;
+  if (!key) return null;
   const res = await get(
     `https://api.rawg.io/api/games?key=${key}&search=${encodeURIComponent(term)}&search_precise=true&page_size=5`
   );
@@ -136,6 +180,7 @@ async function fromRawg(term, imagesDir) {
 
 /** Игра из RAWG по известному id (для ручной привязки в cover-overrides.json) */
 async function fromRawgId(id, imagesDir) {
+  if (!process.env.RAWG_KEY) return null;
   const res = await get(`https://api.rawg.io/api/games/${id}?key=${process.env.RAWG_KEY}`);
   if (!res.ok) return null;
   return saveRawgGame(await res.json(), imagesDir);
@@ -161,10 +206,10 @@ async function readJson(file, fallback) {
 
 export async function run({ outDir, cacheDir = ".covers-cache", games, overrides = {} }) {
   if (!process.env.RAWG_KEY) {
-    console.error(
-      "::error::Не задан RAWG_KEY. Добавьте секрет: Settings → Secrets and variables → Actions → New repository secret (имя RAWG_KEY)."
+    console.warn(
+      "::warning::Секрет RAWG_KEY не задан — обложки ищутся только в Steam. " +
+        "Для лучшего результата добавьте RAWG_KEY (Settings → Secrets and variables → Actions)."
     );
-    process.exit(1);
   }
   const imagesDir = path.join(cacheDir, "images");
   await fs.mkdir(imagesDir, { recursive: true });
@@ -207,18 +252,30 @@ export async function run({ outDir, cacheDir = ".covers-cache", games, overrides
     }
 
     const override = overrides[key];
-    const term = typeof override === "string" ? override : key;
-    const forcedId = typeof override === "number" ? override : undefined;
+    const term = typeof override === "string" && !override.startsWith("rawg:") ? override : key;
+    const steamId = typeof override === "number" ? override : undefined;
+    const rawgId = typeof override === "string" && override.startsWith("rawg:") ? override.slice(5) : undefined;
 
     let meta = null;
     try {
-      if (forcedId) {
-        meta = await fromRawgId(forcedId, imagesDir);
+      if (steamId) {
+        meta = await fromSteam(term, imagesDir, steamId);
+      } else if (rawgId) {
+        meta = await fromRawgId(rawgId, imagesDir);
       } else {
-        for (const t of termVariants(term)) {
+        const variants = termVariants(term);
+        // Сначала RAWG (1 запрос на игру), затем Steam как запасной вариант
+        for (const t of variants) {
           meta = await fromRawg(t, imagesDir);
           if (meta) break;
-          await sleep(DELAY_MS);
+          if (process.env.RAWG_KEY) await sleep(DELAY_MS);
+        }
+        if (!meta) {
+          for (const t of variants) {
+            meta = await fromSteam(t, imagesDir);
+            if (meta) break;
+            await sleep(STEAM_DELAY_MS);
+          }
         }
       }
     } catch (err) {
