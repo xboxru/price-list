@@ -1,6 +1,6 @@
-import type { Game } from "./games";
-import { seededRandom } from "./games";
-import { normalizeTitle } from "./coverLookup";
+import type { Game } from "./games.ts";
+import { seededRandom } from "./games.ts";
+import { normalizeTitle } from "./coverLookup.ts";
 
 export interface CollectionCard {
   id: string;
@@ -12,8 +12,6 @@ export interface CollectionCard {
   collection: string;
   /** Необязательно: своя обложка. Иначе подбирается автоматически по названию. */
   cover?: string;
-  /** Необязательно: своё поисковое слово для автоподбора обложки. */
-  coverQuery?: string;
 }
 
 /**

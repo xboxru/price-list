@@ -15,7 +15,7 @@ interface CardProps {
 
 function CollectionItem({ item, index, inCart, addToCart, openCart }: CardProps) {
   const key = `collection-${item.id}`;
-  const { src, loading, genres } = useGameCover(item.title, item.cover, item.coverQuery);
+  const { src, loading, genres } = useGameCover(item.title, item.cover);
   const meta = genres.length ? genres.join(" · ") : item.collection;
 
   return (

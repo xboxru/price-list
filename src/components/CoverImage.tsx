@@ -25,13 +25,12 @@ export function CoverView({ title, src, pending, className, loading = "lazy" }: 
 interface CoverImageProps {
   title: string;
   cover?: string;
-  query?: string;
   className?: string;
   loading?: "lazy" | "eager";
 }
 
 /** Картинка игры: своя `cover` или автоподбор по названию */
-export default function CoverImage({ title, cover, query, className, loading }: CoverImageProps) {
-  const { src, loading: pending } = useGameCover(title, cover, query);
+export default function CoverImage({ title, cover, className, loading }: CoverImageProps) {
+  const { src, loading: pending } = useGameCover(title, cover);
   return <CoverView title={title} src={src} pending={pending} className={className} loading={loading} />;
 }

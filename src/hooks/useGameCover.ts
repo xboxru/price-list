@@ -3,10 +3,10 @@ import { fetchGameMeta, getCachedMeta, type GameMeta } from "../lib/coverLookup"
 
 /**
  * Возвращает обложку и жанры игры по названию.
- * Обложка: явно заданная `cover` → кэш → поиск в RAWG.
- * Жанры всегда берутся из RAWG (если ключ задан).
+ * Обложка: явно заданная `cover` → кэш → индекс game-covers/index.json.
+ * Жанры берутся оттуда же.
  */
-export function useGameCover(title: string, cover?: string, query?: string) {
+export function useGameCover(title: string, cover?: string) {
   const [meta, setMeta] = useState<GameMeta | null>(() => getCachedMeta(title));
   const [pending, setPending] = useState(() => !getCachedMeta(title));
 
@@ -17,7 +17,7 @@ export function useGameCover(title: string, cover?: string, query?: string) {
     setPending(!cached);
     if (cached) return;
 
-    fetchGameMeta(title, query).then((result) => {
+    fetchGameMeta(title).then((result) => {
       if (cancelled) return;
       setMeta(result);
       setPending(false);
@@ -25,7 +25,7 @@ export function useGameCover(title: string, cover?: string, query?: string) {
     return () => {
       cancelled = true;
     };
-  }, [title, query]);
+  }, [title]);
 
   const src = cover ?? meta?.image ?? null;
   return {

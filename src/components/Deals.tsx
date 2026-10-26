@@ -12,7 +12,7 @@ interface DealsProps {
   openCart: () => void;
 }
 
-/** Жанры игры из RAWG; пока не загрузились — нейтральная подпись */
+/** Жанры игры из индекса обложек; пока не загрузились — нейтральная подпись */
 function DealVibe({ title, fallback }: { title: string; fallback: string }) {
   const { genres } = useGameCover(title);
   return <>{genres.length ? genres.join(" · ") : fallback}</>;

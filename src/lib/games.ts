@@ -138,14 +138,14 @@ export function seededRandom(seed: number) {
  * Автоматически выбирает DEALS_COUNT игр из прайса на основе
  * текущей календарной недели. Каждый понедельник набор обновляется.
  */
-export function resolveDeals(games: Game[]): Deal[] {
+export function resolveDeals(games: Game[], date = new Date()): Deal[] {
   if (games.length < DEALS_COUNT) return [];
 
   // Фильтруем игры: берём только с ценой >= 500 ₽
   const eligible = games.filter((g) => g.priceValue >= 500);
   if (eligible.length < DEALS_COUNT) return [];
 
-  const week = isoWeek();
+  const week = isoWeek(date);
   const rand = seededRandom(week * 7919); // простое число для лучшего разброса
 
   // Перемешиваем копию массива по Фишеру-Йетсу с сидом

@@ -5,6 +5,8 @@ on:
     branches:
       - main
   workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * *" # раз в сутки обновляем прайс-зависимые обложки
 
 permissions:
   contents: read
@@ -33,6 +35,20 @@ jobs:
 
       - name: Build site
         run: npm run build
+
+      - name: Restore covers cache
+        uses: actions/cache@v4
+        with:
+          path: .covers-cache
+          key: covers-${{ github.run_id }}
+          restore-keys: covers-
+
+      - name: Build game covers
+        timeout-minutes: 30
+        continue-on-error: true
+        env:
+          RAWG_KEY: ${{ secrets.RAWG_KEY }}
+        run: node --experimental-strip-types scripts/build-covers.mjs dist/game-covers
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

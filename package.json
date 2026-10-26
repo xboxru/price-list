@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "covers": "node --experimental-strip-types scripts/build-covers.mjs public/game-covers"
   },
   "dependencies": {
     "clsx": "2.1.1",
