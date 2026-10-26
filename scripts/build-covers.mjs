@@ -6,13 +6,13 @@
  *   1. скачивает прайс (тот же Google Sheet, что и сайт);
  *   2. теми же функциями, что и сайт, определяет игры подборки и скидок
  *      на вчера, сегодня и ближайшие дни (чтобы любой часовой пояс был покрыт);
- *   3. для новых игр ищет обложку и жанры в Steam (запасной вариант — RAWG);
+ *   3. для новых игр ищет обложку и жанры в RAWG (если задан секрет RAWG_KEY), иначе/запасной вариант — Steam;
  *   4. сохраняет картинки в папку сайта. Посетители грузят их с вашего же домена,
  *      поэтому VPN не нужен.
  *
  * Локально: npm run covers   (нужен Node 22+)
  *
- * Необязательно: переменная окружения RAWG_KEY — запасной источник для игр, которых нет в Steam.
+ * Переменная окружения RAWG_KEY (секрет репозитория) включает RAWG как основной источник.
  */
 
 import fs from "node:fs/promises";
@@ -29,6 +29,8 @@ const TIME_BUDGET_MS = 20 * 60 * 1000; // не дольше 20 минут за �
 const RETRY_MISS_AFTER_MS = 7 * 24 * 60 * 60 * 1000; // не нашли — пробуем снова через неделю
 /** На сколько дней вперёд/назад считаем наборы: вчера, сегодня, завтра, послезавтра */
 const DAY_OFFSETS = [-1, 0, 1, 2];
+/** Менять при улучшении поиска: тогда ранее ненайденные игры будут искаться заново */
+const SEARCH_VERSION = 3;
 const MIN_MATCH = 0.6; // доля слов запроса, которая должна совпасть с названием в Steam
 
 const GENRES_RU = {
@@ -149,14 +151,35 @@ async function fromRawg(term, imagesDir) {
   const key = process.env.RAWG_KEY;
   if (!key) return null;
   const res = await get(
-    `https://api.rawg.io/api/games?key=${key}&search=${encodeURIComponent(term)}&search_precise=true&page_size=1`
+    `https://api.rawg.io/api/games?key=${key}&search=${encodeURIComponent(term)}&search_precise=true&page_size=5`
   );
   if (!res.ok) return null;
-  const first = (await res.json())?.results?.[0];
-  if (!first?.background_image || overlap(term, first.name ?? "") < MIN_MATCH) return null;
-  const file = `rawg-${first.id}.jpg`;
-  if (!(await downloadImage([first.background_image], path.join(imagesDir, file)))) return null;
-  return { image: `images/${file}`, genres: mapGenres(first.genres?.map((g) => g.name)) };
+  const results = ((await res.json())?.results ?? []).filter((r) => r.background_image);
+  const t = norm(term);
+  const best =
+    results.find((r) => norm(r.name ?? "") === t) ??
+    results
+      .map((r) => ({ r, score: overlap(term, r.name ?? "") }))
+      .filter((x) => x.score >= MIN_MATCH)
+      .sort((x, y) => y.score - x.score)[0]?.r;
+  if (!best) return null;
+
+  // RAWG умеет отдавать уменьшенную копию: файл ~50 КБ вместо нескольких сотен
+  const original = best.background_image;
+  const small = original.replace("/media/", "/media/crop/600/400/");
+  const file = `rawg-${best.id}.jpg`;
+  if (!(await downloadImage([small, original], path.join(imagesDir, file)))) return null;
+  return { image: `images/${file}`, genres: mapGenres(best.genres?.map((g) => g.name)) };
+}
+
+/** Запасные варианты запроса: без подзаголовка («game: subtitle» → «game») */
+function termVariants(term) {
+  const list = [term];
+  for (const sep of [":", " - ", " – ", " — "]) {
+    const head = term.split(sep)[0].trim();
+    if (head.length >= 3) list.push(head);
+  }
+  return [...new Set(list)];
 }
 
 async function readJson(file, fallback) {
@@ -172,6 +195,10 @@ export async function run({ outDir, cacheDir = ".covers-cache", games, overrides
   await fs.mkdir(imagesDir, { recursive: true });
   const statePath = path.join(cacheDir, "state.json");
   const state = await readJson(statePath, {});
+  if (state.__v !== SEARCH_VERSION) {
+    for (const k of Object.keys(state)) if (state[k]?.miss) delete state[k];
+    state.__v = SEARCH_VERSION;
+  }
 
   // Нужны только игры подборки и скидок (за несколько дней, чтобы покрыть все часовые пояса)
   const titles = new Set();
@@ -210,7 +237,23 @@ export async function run({ outDir, cacheDir = ".covers-cache", games, overrides
 
     let meta = null;
     try {
-      meta = (await fromSteam(term, imagesDir, forcedId)) ?? (await fromRawg(term, imagesDir));
+      if (forcedId) {
+        meta = await fromSteam(term, imagesDir, forcedId);
+      } else {
+        const variants = termVariants(term);
+        // RAWG — основной источник (1 запрос на игру), Steam — запасной
+        const sources = process.env.RAWG_KEY
+          ? [fromRawg, fromSteam]
+          : [fromSteam, fromRawg];
+        for (const source of sources) {
+          for (const t of variants) {
+            meta = await source(t, imagesDir);
+            if (meta) break;
+            await sleep(DELAY_MS);
+          }
+          if (meta) break;
+        }
+      }
     } catch (err) {
       console.warn(`  ! ${key}: ${err.message}`);
     }
@@ -237,6 +280,16 @@ export async function run({ outDir, cacheDir = ".covers-cache", games, overrides
       index[key] = { image: e.image, genres: e.genres ?? [] };
       used.add(path.basename(e.image));
     }
+  }
+
+  const notFound = [...wanted.keys()].filter((k) => !index[k]);
+  if (notFound.length) {
+    console.log(`\nОбложка не найдена (${notFound.length}): ${notFound.join(" | ")}`);
+    console.log(
+      "::warning::Нет обложки для: " +
+        notFound.join(", ") +
+        ". Добавьте их в scripts/cover-overrides.json или задайте секрет RAWG_KEY."
+    );
   }
 
   await fs.rm(outDir, { recursive: true, force: true });
