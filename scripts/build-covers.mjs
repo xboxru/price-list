@@ -6,14 +6,14 @@
  *   1. скачивает прайс (тот же Google Sheet, что и сайт);
  *   2. теми же функциями, что и сайт, определяет игры подборки и скидок
  *      на вчера, сегодня и ближайшие дни (чтобы любой часовой пояс был покрыт);
- *   3. для новых игр ищет обложку и жанры сначала в RAWG, а если не нашлось — в Steam;
+ *   3. для новых игр ищет обложку и жанры: сначала в RAWG, затем в магазине Xbox, затем в Steam;
  *   4. сохраняет картинки в папку сайта. Посетители грузят их с вашего же домена,
  *      поэтому VPN не нужен.
  *
  * Локально: npm run covers   (нужен Node 22+)
  *
  * Секрет репозитория RAWG_KEY (бесплатный ключ с https://rawg.io/apidocs) включает RAWG.
- * Без него работает только Steam. Локально: RAWG_KEY=ваш_ключ npm run covers
+ * Без него работают магазин Xbox и Steam. Локально: RAWG_KEY=ваш_ключ npm run covers
  */
 
 import fs from "node:fs/promises";
@@ -32,7 +32,12 @@ const RETRY_MISS_AFTER_MS = 7 * 24 * 60 * 60 * 1000; // не нашли — пр
 /** На сколько дней вперёд/назад считаем наборы: вчера, сегодня, завтра, послезавтра */
 const DAY_OFFSETS = [-1, 0, 1, 2];
 /** Менять при улучшении поиска: тогда ранее ненайденные игры будут искаться заново */
-const SEARCH_VERSION = 5;
+const SEARCH_VERSION = 6;
+
+/** Ширина скачиваемых картинок (px). Больше — чётче, но тяжелее файл (1280 ≈ 100–250 КБ). */
+const IMAGE_WIDTH = 1280;
+/** Менять при смене качества/размера: тогда все картинки скачаются заново */
+const IMAGE_VERSION = 2;
 const MIN_MATCH = 0.6; // доля слов запроса, которая должна совпасть с найденным названием
 
 const GENRES_RU = {
@@ -107,7 +112,117 @@ async function downloadImage(urls, file) {
   return false;
 }
 
+/* ---------- Xbox / Microsoft Store (публичный DisplayCatalog) ---------- */
+
+const XBOX_GENRES_RU = {
+  "action & adventure": ["Экшен", "Приключения"],
+  action: ["Экшен"],
+  adventure: ["Приключения"],
+  shooter: ["Шутер"],
+  "role playing": ["RPG"],
+  rpg: ["RPG"],
+  "racing & flying": ["Гонки"],
+  racing: ["Гонки"],
+  sports: ["Спорт"],
+  strategy: ["Стратегия"],
+  fighting: ["Файтинг"],
+  platformer: ["Платформер"],
+  "puzzle & trivia": ["Головоломка"],
+  puzzle: ["Головоломка"],
+  simulation: ["Симулятор"],
+  "family & kids": ["Семейная"],
+  "card & board": ["Настольная"],
+  educational: ["Обучающая"],
+  casual: ["Казуальная"],
+};
+
+function mapXboxGenres(list) {
+  const out = [];
+  for (const g of list ?? []) {
+    for (const ru of XBOX_GENRES_RU[String(g).toLowerCase()] ?? []) {
+      if (!out.includes(ru)) out.push(ru);
+    }
+  }
+  return out.slice(0, 2);
+}
+
+const DCAT = "https://displaycatalog.mp.microsoft.com/v7.0";
+const XBOX_IMAGE_ORDER = [
+  "TitledHeroArt",
+  "SuperHeroArt",
+  "BrandedKeyArt",
+  "Hero",
+  "BoxArt",
+  "Poster",
+];
+
+const httpsUrl = (u) => (u?.startsWith("//") ? `https:${u}` : u);
+
+async function xboxProduct(bigId) {
+  const res = await get(
+    `${DCAT}/products?bigIds=${encodeURIComponent(bigId)}&market=US&languages=en-US&MS-CV=DGU1mcuYo0WyAe7r.1`
+  );
+  if (!res.ok) return null;
+  return (await res.json())?.Products?.[0] ?? null;
+}
+
+async function saveXboxGame(bigId, fallbackImage, imagesDir) {
+  const product = await xboxProduct(bigId).catch(() => null);
+  const images = product?.LocalizedProperties?.[0]?.Images ?? [];
+
+  const urls = [];
+  for (const purpose of XBOX_IMAGE_ORDER) {
+    const img = images.find((i) => i.ImagePurpose === purpose && i.Uri);
+    if (img) {
+      const base = httpsUrl(img.Uri);
+      urls.push(`${base}?q=95&w=${IMAGE_WIDTH}`, base); // сначала уменьшенная копия, потом оригинал
+      break;
+    }
+  }
+  if (fallbackImage) urls.push(`${httpsUrl(fallbackImage)}?q=95&w=${IMAGE_WIDTH}`, httpsUrl(fallbackImage));
+  if (!urls.length) return null;
+
+  const file = `xbox-${bigId}.jpg`;
+  if (!(await downloadImage(urls, path.join(imagesDir, file)))) return null;
+
+  const props = product?.Properties ?? {};
+  const genres = mapXboxGenres([...(props.Categories ?? []), props.Category].filter(Boolean));
+  return { image: `images/${file}`, genres };
+}
+
+/** Поиск игры в магазине Xbox по названию */
+async function fromXbox(term, imagesDir) {
+  const res = await get(
+    `${DCAT}/productFamilies/autosuggest?market=US&languages=en-US&query=${encodeURIComponent(term)}&MS-CV=DGU1mcuYo0WyAe7r.1`
+  );
+  if (!res.ok) return null;
+  const sets = (await res.json())?.ResultSets ?? [];
+  const items = sets
+    .flatMap((rs) => rs.Suggests ?? [])
+    .filter((i) => i.Title && (!i.Source || /game/i.test(i.Source)));
+  const t = norm(term);
+  const best =
+    items.find((i) => norm(i.Title) === t) ??
+    items
+      .map((i) => ({ i, score: overlap(term, i.Title) }))
+      .filter((x) => x.score >= MIN_MATCH)
+      .sort((x, y) => y.score - x.score)[0]?.i;
+  if (!best) return null;
+
+  const bigId = best.Metas?.find((m) => m.Key === "BigCatalogId")?.Value;
+  if (!bigId) return null;
+  return saveXboxGame(bigId, best.ImageUrl, imagesDir);
+}
+
+/** Игра из магазина Xbox по известному ID продукта (12 символов, из ссылки xbox.com/games/store/…/ID) */
+async function fromXboxId(bigId, imagesDir) {
+  return saveXboxGame(bigId, null, imagesDir);
+}
+
 const steamImageUrls = (id) => [
+  // capsule_616x353 заметно чётче, чем header.jpg (460×215)
+  `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${id}/capsule_616x353.jpg`,
+  `https://cdn.cloudflare.steamstatic.com/steam/apps/${id}/capsule_616x353.jpg`,
   `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${id}/header.jpg`,
   `https://cdn.cloudflare.steamstatic.com/steam/apps/${id}/header.jpg`,
   `https://cdn.akamai.steamstatic.com/steam/apps/${id}/header.jpg`,
@@ -151,9 +266,9 @@ async function fromSteam(term, imagesDir, forcedId) {
 
 async function saveRawgGame(game, imagesDir) {
   if (!game?.background_image) return null;
-  // RAWG умеет отдавать уменьшенную копию: файл ~50 КБ вместо нескольких сотен
+  // RAWG умеет отдавать копию нужной ширины (resize/1280); если не получится — оригинал
   const original = game.background_image;
-  const small = original.replace("/media/", "/media/crop/600/400/");
+  const small = original.replace("/media/", `/media/resize/${IMAGE_WIDTH}/-/`);
   const file = `rawg-${game.id}.jpg`;
   if (!(await downloadImage([small, original], path.join(imagesDir, file)))) return null;
   return { image: `images/${file}`, genres: mapGenres(game.genres?.map((g) => g.name)) };
@@ -207,7 +322,7 @@ async function readJson(file, fallback) {
 export async function run({ outDir, cacheDir = ".covers-cache", games, overrides = {} }) {
   if (!process.env.RAWG_KEY) {
     console.warn(
-      "::warning::Секрет RAWG_KEY не задан — обложки ищутся только в Steam. " +
+      "::warning::Секрет RAWG_KEY не задан — обложки ищутся только в магазине Xbox и Steam. " +
         "Для лучшего результата добавьте RAWG_KEY (Settings → Secrets and variables → Actions)."
     );
   }
@@ -215,6 +330,10 @@ export async function run({ outDir, cacheDir = ".covers-cache", games, overrides
   await fs.mkdir(imagesDir, { recursive: true });
   const statePath = path.join(cacheDir, "state.json");
   const state = await readJson(statePath, {});
+  if (state.__img !== IMAGE_VERSION) {
+    for (const k of Object.keys(state)) if (!k.startsWith("__")) delete state[k];
+    state.__img = IMAGE_VERSION;
+  }
   if (state.__v !== SEARCH_VERSION) {
     for (const k of Object.keys(state)) if (state[k]?.miss) delete state[k];
     state.__v = SEARCH_VERSION;
@@ -252,30 +371,37 @@ export async function run({ outDir, cacheDir = ".covers-cache", games, overrides
     }
 
     const override = overrides[key];
-    const term = typeof override === "string" && !override.startsWith("rawg:") ? override : key;
+    const isTag = (tag) => typeof override === "string" && override.startsWith(`${tag}:`);
+    const term = typeof override === "string" && !/^(rawg|xbox):/.test(override) ? override : key;
     const steamId = typeof override === "number" ? override : undefined;
-    const rawgId = typeof override === "string" && override.startsWith("rawg:") ? override.slice(5) : undefined;
 
     let meta = null;
     try {
       if (steamId) {
         meta = await fromSteam(term, imagesDir, steamId);
-      } else if (rawgId) {
-        meta = await fromRawgId(rawgId, imagesDir);
+      } else if (isTag("rawg")) {
+        meta = await fromRawgId(override.slice(5), imagesDir);
+      } else if (isTag("xbox")) {
+        meta = await fromXboxId(override.slice(5), imagesDir);
       } else {
         const variants = termVariants(term);
-        // Сначала RAWG (1 запрос на игру), затем Steam как запасной вариант
-        for (const t of variants) {
-          meta = await fromRawg(t, imagesDir);
-          if (meta) break;
-          if (process.env.RAWG_KEY) await sleep(DELAY_MS);
-        }
-        if (!meta) {
+        // Порядок источников: RAWG → магазин Xbox → Steam
+        const sources = [
+          { fn: fromRawg, delay: process.env.RAWG_KEY ? DELAY_MS : 0 },
+          { fn: fromXbox, delay: DELAY_MS },
+          { fn: fromSteam, delay: STEAM_DELAY_MS },
+        ];
+        for (const { fn, delay } of sources) {
           for (const t of variants) {
-            meta = await fromSteam(t, imagesDir);
+            try {
+              meta = await fn(t, imagesDir);
+            } catch (err) {
+              console.warn(`  ! ${key} (${fn.name}): ${err.message}`);
+            }
             if (meta) break;
-            await sleep(STEAM_DELAY_MS);
+            if (delay) await sleep(delay);
           }
+          if (meta) break;
         }
       }
     } catch (err) {
