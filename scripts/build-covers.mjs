@@ -18,7 +18,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { fetchGames } from "../src/lib/games.ts";
+import { SHEET_URL, parseSheet } from "../src/lib/games.ts";
 import { normalizeTitle } from "../src/lib/coverLookup.ts";
 import { resolveCollection } from "../src/lib/collections.ts";
 import { resolveDeals } from "../src/lib/games.ts";
@@ -259,12 +259,35 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const overrides = await readJson(path.join(root, "scripts", "cover-overrides.json"), {});
   delete overrides._comment;
 
+  // Ключ Google Sheets может быть ограничен адресом сайта, поэтому из CI
+  // отправляем тот же Referer, что и браузер посетителя.
+  const site = process.env.SITE_URL;
+  const headers = {};
+  if (site) {
+    headers.Referer = site;
+    headers.Origin = new URL(site).origin;
+  }
+
   let games = [];
   try {
-    games = await fetchGames();
-    console.log(`Прайс загружен: ${games.length} позиций`);
+    const res = await fetch(SHEET_URL, { headers });
+    if (!res.ok) {
+      const body = (await res.text()).slice(0, 400);
+      throw new Error(`Google Sheets вернул HTTP ${res.status}: ${body}`);
+    }
+    games = parseSheet((await res.json()).values);
+    console.log(`Прайс загружен: ${games.length} позиций (Referer: ${site ?? "не задан"})`);
   } catch (err) {
-    console.warn(`Не удалось загрузить прайс (${err.message}), используем только кэш`);
+    console.error(`::error::Не удалось загрузить прайс: ${err.message}`);
+    console.error(
+      "Если ошибка 403 — в настройках API-ключа Google (Credentials) разрешите адрес сайта " +
+        "или снимите ограничение по HTTP-referrer."
+    );
+    process.exit(1);
+  }
+  if (games.length === 0) {
+    console.error("::error::Прайс пустой, обложки не собираются.");
+    process.exit(1);
   }
   await run({ outDir, games, overrides });
 }

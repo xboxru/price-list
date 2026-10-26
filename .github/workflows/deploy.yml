@@ -48,7 +48,11 @@ jobs:
         continue-on-error: true
         env:
           RAWG_KEY: ${{ secrets.RAWG_KEY }}
-        run: node --experimental-strip-types scripts/build-covers.mjs dist/game-covers
+          SITE_URL_OVERRIDE: ${{ vars.SITE_URL }}
+        run: |
+          export SITE_URL="${SITE_URL_OVERRIDE:-https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/}"
+          node --experimental-strip-types scripts/build-covers.mjs dist/game-covers
+          ls -la dist/game-covers | head -5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
