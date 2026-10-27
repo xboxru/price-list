@@ -37,8 +37,8 @@ const SEARCH_VERSION = 6;
 /** Ширина скачиваемых картинок (px). Больше — чётче, но тяжелее файл (1280 ≈ 100–250 КБ). */
 const IMAGE_WIDTH = 1280;
 /** Менять при смене качества/размера: тогда все картинки скачаются заново */
-const IMAGE_VERSION = 2;
-const MIN_MATCH = 0.6; // доля слов запроса, которая должна совпасть с найденным названием
+const IMAGE_VERSION = 3;
+const MIN_MATCH = 0.75; // насколько название из источника должно совпасть с запросом (0…1)
 
 const GENRES_RU = {
   Action: "Экшен",
@@ -63,7 +63,12 @@ const GENRES_RU = {
 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const norm = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+const norm = (s) =>
+  s
+    .toLowerCase()
+    .replace(/['’`]/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
 const mapGenres = (list) => (list ?? []).map((g) => GENRES_RU[g]).filter(Boolean).slice(0, 2);
 
 async function get(url, tries = 3) {
@@ -88,11 +93,25 @@ async function get(url, tries = 3) {
   throw lastErr;
 }
 
+const STOP_WORDS = new Set(["the", "a", "an", "of", "and"]);
+const tokens = (s) => new Set(norm(s).split(" ").filter((w) => w && !STOP_WORDS.has(w)));
+
+function jaccard(a, b) {
+  const A = tokens(a);
+  const B = tokens(b);
+  if (!A.size || !B.size) return 0;
+  const common = [...A].filter((w) => B.has(w)).length;
+  return common / (A.size + B.size - common);
+}
+
+/**
+ * Насколько название из источника совпадает с запросом (0…1).
+ * Учитываются слова в обе стороны, поэтому «Joy Ball» ≠ «Joy Ball Adventure».
+ * Название с подзаголовком («Game: Subtitle») сравнивается и по основной части.
+ */
 function overlap(term, name) {
-  const a = norm(term).split(" ").filter(Boolean);
-  const b = new Set(norm(name).split(" "));
-  if (!a.length) return 0;
-  return a.filter((w) => b.has(w)).length / a.length;
+  const head = name.split(/\s*[:–—]\s*|\s+-\s+/)[0];
+  return Math.max(jaccard(term, name), head && head !== name ? jaccard(term, head) : 0);
 }
 
 async function downloadImage(urls, file) {
