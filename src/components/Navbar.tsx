@@ -20,7 +20,7 @@ function MenuContact() {
         onClick={() => setOpen((v) => !v)}
       >
         <Send size={16} />
-        <span>Спросить в личке</span>
+        <span>Связаться с нами</span>
         <ChevronDown size={14} className={`chevron ${open ? "up" : ""}`} />
       </button>
 
@@ -207,7 +207,7 @@ export default function Navbar({ currentPage, setPage, onSearch }: NavbarProps) 
               </div>
 
               <div className="menu-group">
-                <span className="group-label">Спросить в личке</span>
+                <span className="group-label">Связаться с нами</span>
                 <MenuContact />
               </div>
             </div>

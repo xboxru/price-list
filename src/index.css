@@ -2244,7 +2244,7 @@ img {
 .cart-link.jivo:hover { background: linear-gradient(180deg, rgba(76,175,80,0.24),rgba(76,175,80,0.12)); border-color: rgba(76,175,80,0.5); }
 
 /* ============================================================
-   CONTACT DROPDOWN (Спросить в личке)
+   CONTACT DROPDOWN (Связаться с нами)
    ============================================================ */
 .contact-help-wrap {
   width: min(100%, 520px);

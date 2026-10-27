@@ -1,4 +1,4 @@
-import { BadgeCheck, Clock, Copy, MessageCircleQuestion, Send } from "lucide-react";
+import { BadgeCheck, Clock, Copy, MessageCircleQuestion, Send, ShoppingCart } from "lucide-react";
 import { TG_CHANNEL, TG_PM } from "../lib/games";
 
 export default function Footer() {
@@ -43,12 +43,12 @@ export default function Footer() {
         <div>
           <h5>Как заказать</h5>
           <div className="footer-hint">
-            <Copy size={15} />
-            Нажмите на игру в каталоге — название и цена скопируются
+            <ShoppingCart size={15} />
+            Нажмите на игру в каталоге — игра добавится в корзину
           </div>
           <div className="footer-hint">
-            <Send size={15} />
-            Вставьте текст в сообщение нашему боту или в личку
+            <Copy size={15} />
+            Нажмите скопировать список, заказать и свяжитесь с нами удобным способом
           </div>
           <div className="footer-hint">
             <BadgeCheck size={15} />

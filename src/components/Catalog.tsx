@@ -56,7 +56,7 @@ function ContactDropdown() {
         onClick={() => setOpen((v) => !v)}
       >
         <Send size={16} />
-        <span>Спросить в личке</span>
+        <span>Связаться с нами</span>
         <ChevronDown size={14} className={`chevron ${open ? "up" : ""}`} />
       </button>
 
