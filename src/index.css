@@ -1218,6 +1218,58 @@ img {
   padding: 20px 0 60px;
 }
 
+/* Подменю подборок: вкладки со скроллом на узких экранах */
+.collection-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding-bottom: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+}
+.collection-tabs::-webkit-scrollbar {
+  display: none;
+}
+.collection-tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  scroll-snap-align: start;
+  white-space: nowrap;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  padding: 9px 16px;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.collection-tab:hover {
+  color: var(--text);
+  border-color: var(--line-strong);
+}
+.collection-tab.active {
+  color: #04120c;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.collection-tab-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+}
+.collection-tab.active .collection-tab-count {
+  background: rgba(4, 18, 12, 0.18);
+}
+
 .collections-intro {
   margin: 0 0 20px;
   color: var(--muted);

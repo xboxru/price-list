@@ -1,4 +1,5 @@
 {
   "_comment": "Необязательно. Если для игры нашлась не та обложка или не нашлась вовсе: ключ — название в нижнем регистре без платформы и издания (как в списке «не найдено» в логе сборки). Значение: строка — другое название для поиска (все источники по очереди); число — номер игры в Steam; \"rawg:ЧИСЛО\" — номер игры в RAWG; \"xbox:ID\" — ID продукта в магазине Xbox (12 символов в конце ссылки xbox.com/games/store/название/ID); \"igdb:ЧИСЛО\" — номер игры в IGDB; \"sgdb:ЧИСЛО\" — номер игры в SteamGridDB (в конце ссылки steamgriddb.com/game/ЧИСЛО). Примеры: \"halo infinite\": \"Halo Infinite\", \"halo infinite\": 1240440, \"halo infinite\": \"rawg:3498\", \"halo infinite\": \"xbox:9PP5G1F0C2B6\", \"halo infinite\": \"igdb:7358\", \"halo infinite\": \"sgdb:5254046\"",
-  "darkland iii": "xbox:9P6VQ73LDDWV"
+  "darkland iii": "xbox:9P6VQ73LDDWV",
+  "joy ball adventure": "xbox:9NTDXZTCQLKR"
 }

@@ -4,7 +4,7 @@
  *
  * Запускается в GitHub Actions при каждой сборке (и раз в сутки по расписанию):
  *   1. скачивает прайс (тот же Google Sheet, что и сайт);
- *   2. теми же функциями, что и сайт, определяет игры подборки и скидок
+ *   2. теми же функциями, что и сайт (плюс все игры из авторских подборок), определяет игры подборки и скидок
  *      на вчера, сегодня и ближайшие дни (чтобы любой часовой пояс был покрыт);
  *   3. для новых игр ищет обложку и жанры по очереди: RAWG → магазин Xbox → IGDB → SteamGridDB → Steam;
  *   4. сохраняет картинки в папку сайта. Посетители грузят их с вашего же домена,
@@ -26,6 +26,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { SHEET_URL, parseSheet } from "../src/lib/games.ts";
 import { normalizeTitle } from "../src/lib/coverLookup.ts";
 import { resolveCollection } from "../src/lib/collections.ts";
+import { resolveAuthorCollections } from "../src/lib/authorCollections.ts";
 import { resolveDeals } from "../src/lib/games.ts";
 
 const UA = "Mozilla/5.0 (compatible; xpbox-cover-bot/1.0)";
@@ -520,6 +521,13 @@ export async function run({ outDir, cacheDir = ".covers-cache", games, overrides
     const date = new Date(Date.now() + offset * 24 * 60 * 60 * 1000);
     for (const c of resolveCollection(games, date)) titles.add(c.title);
     for (const d of resolveDeals(games, date)) titles.add(d.game.name);
+  }
+  // Авторские подборки: показываются всегда, поэтому обложки нужны для всех их игр
+  for (const ac of resolveAuthorCollections(games)) {
+    for (const card of ac.cards) titles.add(card.title);
+    if (ac.missing.length) {
+      console.log(`::warning::Авторская подборка «${ac.title}»: не показаны — ${ac.missing.join("; ")}`);
+    }
   }
   const wanted = new Map();
   for (const title of titles) {

@@ -38,7 +38,7 @@ export function dayKey(date = new Date()): number {
   return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
 }
 
-function detectPlatforms(name: string): string[] {
+export function detectPlatforms(name: string): string[] {
   const n = name.toLowerCase();
   const list: string[] = [];
   if (/xbox/.test(n)) {
@@ -52,7 +52,7 @@ function detectPlatforms(name: string): string[] {
   return list.length ? list : ["Xbox"];
 }
 
-function displayTitle(name: string): string {
+export function displayTitle(name: string): string {
   return (
     name
       .replace(/\s*[|\-–—]?\s*xbox\b.*$/i, "")
@@ -89,12 +89,19 @@ export function resolveCollection(games: Game[], date = new Date()): CollectionC
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
 
-  return pool.slice(0, COLLECTION_COUNT).map((g) => ({
+  return pool
+    .slice(0, COLLECTION_COUNT)
+    .map((g) => toCard(g, "Низкая цена", "Подборка дня"));
+}
+
+/** Карточка игры для раздела «Подборки» */
+export function toCard(g: Game, badge: string, collection: string): CollectionCard {
+  return {
     id: String(g.id),
     title: displayTitle(g.name),
     price: g.price,
     platforms: detectPlatforms(g.name),
-    badge: "Низкая цена",
-    collection: "Подборка дня",
-  }));
+    badge,
+    collection,
+  };
 }

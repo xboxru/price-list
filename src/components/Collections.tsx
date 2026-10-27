@@ -1,6 +1,7 @@
 import { Plus, ShoppingCart, Sparkles } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { resolveCollection, type CollectionCard } from "../lib/collections";
+import { resolveAuthorCollections } from "../lib/authorCollections";
 import { useGameCover } from "../hooks/useGameCover";
 import type { Game } from "../lib/games";
 import { CoverView } from "./CoverImage";
@@ -70,14 +71,24 @@ interface CollectionsProps {
   openCart: () => void;
 }
 
+const DAILY = "daily";
+
 export default function Collections({ games, cartIds, addToCart, openCart }: CollectionsProps) {
-  const cards = useMemo(() => resolveCollection(games), [games]);
+  const daily = useMemo(() => resolveCollection(games), [games]);
+  const authors = useMemo(
+    () => resolveAuthorCollections(games).filter((c) => c.cards.length > 0),
+    [games]
+  );
+  const [active, setActive] = useState<string>(DAILY);
+
+  const current = authors.find((c) => c.id === active);
+  const cards = current ? current.cards : daily;
 
   return (
     <section className="collections-section">
       <div className="section-head">
         <div>
-          <div className="section-kicker">03 · подборка от магазина</div>
+          <div className="section-kicker">03 · подборки от магазина</div>
           <h2 className="section-title">
             <span
               className="ticon"
@@ -89,15 +100,41 @@ export default function Collections({ games, cartIds, addToCart, openCart }: Col
             >
               <Sparkles size={22} />
             </span>
-            Игровые <em>карточки</em>
+            Игровые <em>подборки</em>
           </h2>
         </div>
       </div>
 
+      {authors.length > 0 && (
+        <div className="collection-tabs" role="tablist" aria-label="Подборки">
+          <button
+            role="tab"
+            aria-selected={!current}
+            className={`collection-tab ${!current ? "active" : ""}`}
+            onClick={() => setActive(DAILY)}
+          >
+            Подборка дня
+          </button>
+          {authors.map((c) => (
+            <button
+              key={c.id}
+              role="tab"
+              aria-selected={current?.id === c.id}
+              className={`collection-tab ${current?.id === c.id ? "active" : ""}`}
+              onClick={() => setActive(c.id)}
+            >
+              {c.title}
+              <span className="collection-tab-count">{c.cards.length}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       <p className="collections-intro">
-        Подборка дня: 12 игр по самым низким ценам из нашего прайса. Набор
-        обновляется каждый день. Добавляйте игры в корзину и отправляйте
-        список одним сообщением.
+        {current
+          ? current.description
+          : "Подборка дня: 12 игр по самым низким ценам из нашего прайса. Набор обновляется каждый день."}{" "}
+        Добавляйте игры в корзину и отправляйте список одним сообщением.
       </p>
 
       <div className="store-cards-grid">
@@ -106,7 +143,7 @@ export default function Collections({ games, cartIds, addToCart, openCart }: Col
         )}
         {cards.map((item, index) => (
           <CollectionItem
-            key={`collection-${item.id}`}
+            key={`${current?.id ?? DAILY}-${item.id}`}
             item={item}
             index={index}
             inCart={cartIds.has(`collection-${item.id}`)}
