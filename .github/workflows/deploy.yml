@@ -48,6 +48,9 @@ jobs:
         continue-on-error: true
         env:
           RAWG_KEY: ${{ secrets.RAWG_KEY }}
+          IGDB_CLIENT_ID: ${{ secrets.IGDB_CLIENT_ID }}
+          IGDB_CLIENT_SECRET: ${{ secrets.IGDB_CLIENT_SECRET }}
+          STEAMGRIDDB_KEY: ${{ secrets.STEAMGRIDDB_KEY }}
           SITE_URL_OVERRIDE: ${{ vars.SITE_URL }}
         run: |
           export SITE_URL="${SITE_URL_OVERRIDE:-https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/}"

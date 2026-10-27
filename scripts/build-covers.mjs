@@ -6,14 +6,18 @@
  *   1. скачивает прайс (тот же Google Sheet, что и сайт);
  *   2. теми же функциями, что и сайт, определяет игры подборки и скидок
  *      на вчера, сегодня и ближайшие дни (чтобы любой часовой пояс был покрыт);
- *   3. для новых игр ищет обложку и жанры: сначала в RAWG, затем в магазине Xbox, затем в Steam;
+ *   3. для новых игр ищет обложку и жанры по очереди: RAWG → магазин Xbox → IGDB → SteamGridDB → Steam;
  *   4. сохраняет картинки в папку сайта. Посетители грузят их с вашего же домена,
  *      поэтому VPN не нужен.
  *
  * Локально: npm run covers   (нужен Node 22+)
  *
- * Секрет репозитория RAWG_KEY (бесплатный ключ с https://rawg.io/apidocs) включает RAWG.
- * Без него работают магазин Xbox и Steam. Локально: RAWG_KEY=ваш_ключ npm run covers
+ * Ключи (секреты репозитория, все необязательные — источник без ключа пропускается):
+ *   RAWG_KEY                         https://rawg.io/apidocs
+ *   IGDB_CLIENT_ID, IGDB_CLIENT_SECRET   https://api-docs.igdb.com (аккаунт Twitch)
+ *   STEAMGRIDDB_KEY                  https://www.steamgriddb.com/profile/preferences/api
+ * Магазин Xbox и Steam работают без ключей.
+ * Локально: RAWG_KEY=... npm run covers
  */
 
 import fs from "node:fs/promises";
@@ -32,7 +36,7 @@ const RETRY_MISS_AFTER_MS = 7 * 24 * 60 * 60 * 1000; // не нашли — пр
 /** На сколько дней вперёд/назад считаем наборы: вчера, сегодня, завтра, послезавтра */
 const DAY_OFFSETS = [-1, 0, 1, 2];
 /** Менять при улучшении поиска: тогда ранее ненайденные игры будут искаться заново */
-const SEARCH_VERSION = 6;
+const SEARCH_VERSION = 7;
 
 /** Ширина скачиваемых картинок (px). Больше — чётче, но тяжелее файл (1280 ≈ 100–250 КБ). */
 const IMAGE_WIDTH = 1280;
@@ -94,7 +98,15 @@ async function get(url, tries = 3) {
 }
 
 const STOP_WORDS = new Set(["the", "a", "an", "of", "and"]);
-const tokens = (s) => new Set(norm(s).split(" ").filter((w) => w && !STOP_WORDS.has(w)));
+// «III» и «3» — одно и то же: римские цифры приводим к арабским
+const ROMAN = { ii: "2", iii: "3", iv: "4", v: "5", vi: "6", vii: "7", viii: "8", ix: "9", x: "10" };
+const tokens = (s) =>
+  new Set(
+    norm(s)
+      .split(" ")
+      .filter((w) => w && !STOP_WORDS.has(w))
+      .map((w) => ROMAN[w] ?? w)
+  );
 
 function jaccard(a, b) {
   const A = tokens(a);
@@ -238,6 +250,150 @@ async function fromXboxId(bigId, imagesDir) {
   return saveXboxGame(bigId, null, imagesDir);
 }
 
+/* ---------- IGDB (Twitch): нужны IGDB_CLIENT_ID и IGDB_CLIENT_SECRET ---------- */
+
+const IGDB_GENRES_RU = {
+  Shooter: "Шутер",
+  "Role-playing (RPG)": "RPG",
+  Adventure: "Приключения",
+  Platform: "Платформер",
+  Racing: "Гонки",
+  Sport: "Спорт",
+  Strategy: "Стратегия",
+  "Real Time Strategy (RTS)": "Стратегия",
+  "Turn-based strategy (TBS)": "Стратегия",
+  Tactical: "Тактика",
+  Fighting: "Файтинг",
+  Puzzle: "Головоломка",
+  Simulator: "Симулятор",
+  Indie: "Инди",
+  Arcade: "Аркада",
+  "Hack and slash/Beat 'em up": "Экшен",
+  "Point-and-click": "Квест",
+  "Visual Novel": "Визуальная новелла",
+  "Card & Board Game": "Настольная",
+  "Quiz/Trivia": "Викторина",
+  Music: "Музыкальная",
+  MOBA: "MOBA",
+};
+
+let igdbToken = null;
+
+async function igdbAuth() {
+  if (igdbToken) return igdbToken;
+  const id = process.env.IGDB_CLIENT_ID;
+  const secret = process.env.IGDB_CLIENT_SECRET;
+  const res = await fetch(
+    `https://id.twitch.tv/oauth2/token?client_id=${id}&client_secret=${secret}&grant_type=client_credentials`,
+    { method: "POST", signal: AbortSignal.timeout(15000) }
+  );
+  if (!res.ok) throw new Error(`Twitch OAuth: HTTP ${res.status}`);
+  igdbToken = (await res.json()).access_token;
+  return igdbToken;
+}
+
+async function igdbQuery(body) {
+  if (!process.env.IGDB_CLIENT_ID || !process.env.IGDB_CLIENT_SECRET) return [];
+  const token = await igdbAuth();
+  const res = await fetch("https://api.igdb.com/v4/games", {
+    method: "POST",
+    headers: {
+      "Client-ID": process.env.IGDB_CLIENT_ID,
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      "user-agent": UA,
+    },
+    body,
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(`IGDB: HTTP ${res.status}`);
+  return res.json();
+}
+
+const IGDB_FIELDS =
+  "name,alternative_names.name,genres.name,artworks.image_id,screenshots.image_id,cover.image_id";
+
+async function saveIgdbGame(game, imagesDir) {
+  // широкая картинка лучше подходит карточкам: арт → скриншот → обложка
+  const wide = game.artworks?.[0]?.image_id ?? game.screenshots?.[0]?.image_id;
+  const urls = wide
+    ? [`https://images.igdb.com/igdb/image/upload/t_720p/${wide}.jpg`]
+    : game.cover?.image_id
+      ? [`https://images.igdb.com/igdb/image/upload/t_cover_big_2x/${game.cover.image_id}.jpg`]
+      : [];
+  if (!urls.length) return null;
+  const file = `igdb-${game.id}.jpg`;
+  if (!(await downloadImage(urls, path.join(imagesDir, file)))) return null;
+  const genres = (game.genres ?? [])
+    .map((g) => IGDB_GENRES_RU[g.name])
+    .filter(Boolean)
+    .filter((g, i, a) => a.indexOf(g) === i)
+    .slice(0, 2);
+  return { image: `images/${file}`, genres };
+}
+
+async function fromIgdb(term, imagesDir) {
+  const safe = term.replace(/["\\]/g, " ");
+  const games = await igdbQuery(`search "${safe}"; fields ${IGDB_FIELDS}; limit 8;`);
+  const t = norm(term);
+  const names = (g) => [g.name, ...(g.alternative_names ?? []).map((a) => a.name)].filter(Boolean);
+  const best =
+    games.find((g) => names(g).some((n) => norm(n) === t)) ??
+    games
+      .map((g) => ({ g, score: Math.max(0, ...names(g).map((n) => overlap(term, n))) }))
+      .filter((x) => x.score >= MIN_MATCH)
+      .sort((x, y) => y.score - x.score)[0]?.g;
+  return best ? saveIgdbGame(best, imagesDir) : null;
+}
+
+async function fromIgdbId(id, imagesDir) {
+  const games = await igdbQuery(`fields ${IGDB_FIELDS}; where id = ${Number(id)};`);
+  return games[0] ? saveIgdbGame(games[0], imagesDir) : null;
+}
+
+/* ---------- SteamGridDB: нужен STEAMGRIDDB_KEY ---------- */
+
+const SGDB = "https://www.steamgriddb.com/api/v2";
+
+async function sgdbGet(pathname) {
+  const res = await fetch(`${SGDB}${pathname}`, {
+    headers: { Authorization: `Bearer ${process.env.STEAMGRIDDB_KEY}`, "user-agent": UA },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(`SteamGridDB: HTTP ${res.status}`);
+  return res.json();
+}
+
+async function saveSgdbGame(id, imagesDir) {
+  // широкие «обложки» Steam 920×430 / 460×215; если их нет — любая сетка
+  const wide = await sgdbGet(`/grids/game/${id}?dimensions=920x430,460x215&types=static&nsfw=false`);
+  const any = wide?.data?.length ? wide : await sgdbGet(`/grids/game/${id}?types=static&nsfw=false`);
+  const best = (any?.data ?? []).sort((a, b) => b.score - a.score)[0];
+  if (!best?.url) return null;
+  const file = `sgdb-${id}.jpg`;
+  if (!(await downloadImage([best.url], path.join(imagesDir, file)))) return null;
+  return { image: `images/${file}`, genres: [] }; // у SteamGridDB жанров нет
+}
+
+async function fromSgdb(term, imagesDir) {
+  if (!process.env.STEAMGRIDDB_KEY) return null;
+  const found = await sgdbGet(`/search/autocomplete/${encodeURIComponent(term)}`);
+  const items = found?.data ?? [];
+  const t = norm(term);
+  const best =
+    items.find((i) => norm(i.name) === t) ??
+    items
+      .map((i) => ({ i, score: overlap(term, i.name) }))
+      .filter((x) => x.score >= MIN_MATCH)
+      .sort((x, y) => y.score - x.score)[0]?.i;
+  return best ? saveSgdbGame(best.id, imagesDir) : null;
+}
+
+async function fromSgdbId(id, imagesDir) {
+  if (!process.env.STEAMGRIDDB_KEY) return null;
+  return saveSgdbGame(id, imagesDir);
+}
+
 const steamImageUrls = (id) => [
   // capsule_616x353 заметно чётче, чем header.jpg (460×215)
   `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${id}/capsule_616x353.jpg`,
@@ -341,7 +497,7 @@ async function readJson(file, fallback) {
 export async function run({ outDir, cacheDir = ".covers-cache", games, overrides = {} }) {
   if (!process.env.RAWG_KEY) {
     console.warn(
-      "::warning::Секрет RAWG_KEY не задан — обложки ищутся только в магазине Xbox и Steam. " +
+      "::warning::Секрет RAWG_KEY не задан — обложки ищутся без RAWG. " +
         "Для лучшего результата добавьте RAWG_KEY (Settings → Secrets and variables → Actions)."
     );
   }
@@ -391,7 +547,7 @@ export async function run({ outDir, cacheDir = ".covers-cache", games, overrides
 
     const override = overrides[key];
     const isTag = (tag) => typeof override === "string" && override.startsWith(`${tag}:`);
-    const term = typeof override === "string" && !/^(rawg|xbox):/.test(override) ? override : key;
+    const term = typeof override === "string" && !/^(rawg|xbox|igdb|sgdb):/.test(override) ? override : key;
     const steamId = typeof override === "number" ? override : undefined;
 
     let meta = null;
@@ -402,12 +558,20 @@ export async function run({ outDir, cacheDir = ".covers-cache", games, overrides
         meta = await fromRawgId(override.slice(5), imagesDir);
       } else if (isTag("xbox")) {
         meta = await fromXboxId(override.slice(5), imagesDir);
+      } else if (isTag("igdb")) {
+        meta = await fromIgdbId(override.slice(5), imagesDir);
+      } else if (isTag("sgdb")) {
+        meta = await fromSgdbId(override.slice(5), imagesDir);
       } else {
         const variants = termVariants(term);
-        // Порядок источников: RAWG → магазин Xbox → Steam
+        // Порядок источников: RAWG → магазин Xbox → IGDB → SteamGridDB → Steam
+        // (источники без ключей пропускаются сами)
+        const hasIgdb = process.env.IGDB_CLIENT_ID && process.env.IGDB_CLIENT_SECRET;
         const sources = [
           { fn: fromRawg, delay: process.env.RAWG_KEY ? DELAY_MS : 0 },
           { fn: fromXbox, delay: DELAY_MS },
+          { fn: fromIgdb, delay: hasIgdb ? DELAY_MS : 0 },
+          { fn: fromSgdb, delay: process.env.STEAMGRIDDB_KEY ? DELAY_MS : 0 },
           { fn: fromSteam, delay: STEAM_DELAY_MS },
         ];
         for (const { fn, delay } of sources) {
