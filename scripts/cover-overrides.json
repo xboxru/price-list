@@ -1,5 +1,6 @@
 {
-  "_comment": "Необязательно. Если для игры нашлась не та обложка или не нашлась вовсе: ключ — название в нижнем регистре без платформы и издания (как в списке «не найдено» в логе сборки). Значение: строка — другое название для поиска (все источники по очереди); число — номер игры в Steam; \"rawg:ЧИСЛО\" — номер игры в RAWG; \"xbox:ID\" — ID продукта в магазине Xbox (12 символов в конце ссылки xbox.com/games/store/название/ID); \"igdb:ЧИСЛО\" — номер игры в IGDB; \"sgdb:ЧИСЛО\" — номер игры в SteamGridDB (в конце ссылки steamgriddb.com/game/ЧИСЛО). Примеры: \"halo infinite\": \"Halo Infinite\", \"halo infinite\": 1240440, \"halo infinite\": \"rawg:3498\", \"halo infinite\": \"xbox:9PP5G1F0C2B6\", \"halo infinite\": \"igdb:7358\", \"halo infinite\": \"sgdb:5254046\"",
-  "darkland iii": "xbox:9P6VQ73LDDWV",
-  "joy ball adventure": "xbox:9NTDXZTCQLKR"
+  "_comment": "Если для игры нет картинки или она не та: добавьте строку «название игры»: «ссылка». Название можно писать как в прайсе (регистр и платформа не важны). В значение просто вставьте хвост ссылки из магазина Xbox, например the-sims-4-v-restorane/brtfkmgz6rf2, или ссылку целиком, или только 12-значный ID. Также подойдут ссылки на Steam (store.steampowered.com/app/…), RAWG (rawg.io/games/…), IGDB (igdb.com/games/…), SteamGridDB (steamgriddb.com/game/…) и запись вида xbox:ID, rawg:ID, igdb:ID, sgdb:ID. Обычная строка без ссылки считается другим названием для поиска.",
+  "darkland iii": "https://www.xbox.com/games/store/darkland-iii/9P6VQ73LDDWV",
+  "joy ball adventure": "9NTDXZTCQLKR",
+  "the sims 4 в ресторане": "the-sims-4-v-restorane/brtfkmgz6rf2"
 }

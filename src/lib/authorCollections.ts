@@ -14,6 +14,8 @@ import { normalizeTitle } from "./coverLookup.ts";
  *  - badge       — необязательно: надпись на картинке (по умолчанию «Выбор автора»)
  *  - games       — названия игр. Пишите как в прайсе, но без платформы и издания
  *                  (например "Elden Ring", а не "ELDEN RING XBOX ONE|XS").
+ *                  Издание учитывается: "Battlefield 4 Premium Edition" найдёт именно
+ *                  Premium, а "Battlefield 4" — обычную версию.
  *                  Цена и платформы берутся из прайса автоматически,
  *                  картинки подбираются сами. Если игры нет в прайсе, она
  *                  просто не показывается (в логе сборки будет предупреждение).
@@ -88,28 +90,78 @@ export interface AuthorCollection {
 
 const tokens = (s: string) => new Set(normalizeTitle(s).split(/[^\p{L}\p{N}]+/u).filter(Boolean));
 
-/** Ищет в прайсе игру по названию: сначала точное совпадение, затем «все слова названия есть» */
-function findGame(entry: string, candidates: { game: Game; key: string; words: Set<string> }[]) {
+/**
+ * Слова-издания. Для поиска обложек они отбрасываются (у всех изданий одна обложка),
+ * а здесь учитываются: «Battlefield 4 Premium Edition» не должен превращаться
+ * в обычный «Battlefield 4».
+ */
+const EDITION_WORDS = new Set([
+  "deluxe",
+  "ultimate",
+  "premium",
+  "gold",
+  "standard",
+  "complete",
+  "definitive",
+  "goty",
+  "collectors",
+  "legendary",
+  "anniversary",
+]);
+
+function editionOf(name: string): Set<string> {
+  const lower = name.toLowerCase().replace(/['’`]/g, "");
+  const found = new Set<string>();
+  for (const w of lower.split(/[^\p{L}\p{N}]+/u)) if (EDITION_WORDS.has(w)) found.add(w);
+  if (lower.includes("game of the year")) found.add("goty");
+  return found;
+}
+
+interface Candidate {
+  game: Game;
+  key: string;
+  words: Set<string>;
+  edition: Set<string>;
+}
+
+/**
+ * Ищет в прайсе игру по названию: сначала точное совпадение, затем «все слова названия есть».
+ * Издание учитывается: если в запросе есть Premium/Deluxe/…, берётся именно оно;
+ * если издание не указано — предпочитается обычная версия.
+ */
+function findGame(entry: string, candidates: Candidate[]): Game | undefined {
   const key = normalizeTitle(entry);
   const words = tokens(entry);
   if (!words.size) return undefined;
+  const wanted = editionOf(entry);
 
-  const cheapest = (list: typeof candidates) =>
-    list.sort((a, b) => a.game.priceValue - b.game.priceValue)[0]?.game;
+  const cheapest = (list: Candidate[]) =>
+    [...list].sort((a, b) => a.game.priceValue - b.game.priceValue)[0]?.game;
 
-  const exact = cheapest(candidates.filter((c) => c.key === key));
-  if (exact) return exact;
+  const byEdition = (list: Candidate[]) => {
+    if (wanted.size) return list.filter((c) => [...wanted].every((e) => c.edition.has(e)));
+    const plain = list.filter((c) => c.edition.size === 0);
+    return plain.length ? plain : list;
+  };
 
-  const partial = candidates
-    .filter((c) => [...words].every((w) => c.words.has(w)))
-    .sort((a, b) => a.words.size - b.words.size || a.game.priceValue - b.game.priceValue);
+  const exact = candidates.filter((c) => c.key === key);
+  if (exact.length) return cheapest(byEdition(exact));
+
+  const partial = byEdition(candidates.filter((c) => [...words].every((w) => c.words.has(w)))).sort(
+    (a, b) => a.words.size - b.words.size || a.game.priceValue - b.game.priceValue
+  );
   return partial[0]?.game;
 }
 
 export function resolveAuthorCollections(games: Game[]): AuthorCollection[] {
   const candidates = games
     .filter((g) => g.priceValue > 0 && !g.isPreorder)
-    .map((game) => ({ game, key: normalizeTitle(game.name), words: tokens(game.name) }));
+    .map((game) => ({
+      game,
+      key: normalizeTitle(game.name),
+      words: tokens(game.name),
+      edition: editionOf(game.name),
+    }));
 
   return AUTHOR_COLLECTIONS.map((def) => {
     const cards: CollectionCard[] = [];
@@ -122,7 +174,7 @@ export function resolveAuthorCollections(games: Game[]): AuthorCollection[] {
 
       const game = findGame(name, candidates);
       if (!game) {
-        missing.push(`${name} (нет в прайсе)`);
+        missing.push(`${name} (нет в прайсе или нет такого издания)`);
         continue;
       }
       if (maxPrice !== undefined && game.priceValue > maxPrice) {

@@ -348,7 +348,10 @@ async function fromIgdb(term, imagesDir) {
 }
 
 async function fromIgdbId(id, imagesDir) {
-  const games = await igdbQuery(`fields ${IGDB_FIELDS}; where id = ${Number(id)};`);
+  const where = /^\d+$/.test(String(id))
+    ? `id = ${Number(id)}`
+    : `slug = "${String(id).replace(/[^a-z0-9-]/gi, "")}"`;
+  const games = await igdbQuery(`fields ${IGDB_FIELDS}; where ${where};`);
   return games[0] ? saveIgdbGame(games[0], imagesDir) : null;
 }
 
@@ -472,7 +475,7 @@ async function fromRawg(term, imagesDir) {
 /** Игра из RAWG по известному id (для ручной привязки в cover-overrides.json) */
 async function fromRawgId(id, imagesDir) {
   if (!process.env.RAWG_KEY) return null;
-  const res = await get(`https://api.rawg.io/api/games/${id}?key=${process.env.RAWG_KEY}`);
+  const res = await get(`https://api.rawg.io/api/games/${encodeURIComponent(id)}?key=${process.env.RAWG_KEY}`);
   if (!res.ok) return null;
   return saveRawgGame(await res.json(), imagesDir);
 }
@@ -495,6 +498,49 @@ async function readJson(file, fallback) {
   }
 }
 
+/**
+ * Разбор значения из cover-overrides.json. Можно вставлять что угодно из этого списка:
+ *   "the-sims-4-v-restorane/brtfkmgz6rf2"        хвост ссылки Xbox (slug/ID)
+ *   "https://www.xbox.com/.../9P6VQ73LDDWV"       ссылка на игру в магазине Xbox / Microsoft Store
+ *   "9P6VQ73LDDWV"                                только ID продукта Xbox
+ *   "https://store.steampowered.com/app/1245620"  ссылка Steam (или число 1245620)
+ *   "https://rawg.io/games/elden-ring"            ссылка RAWG
+ *   "https://www.steamgriddb.com/game/5254046"    ссылка SteamGridDB
+ *   "https://www.igdb.com/games/elden-ring"       ссылка IGDB
+ *   "xbox:ID", "rawg:ID", "igdb:ID", "sgdb:ID"    явная форма
+ *   "Другое название"                             просто другой поисковый запрос
+ */
+export function parseOverride(value) {
+  if (typeof value === "number") return { kind: "steam", id: String(value) };
+  const v = String(value).trim();
+
+  const tag = v.match(/^(xbox|rawg|igdb|sgdb|steam):\s*(.+)$/i);
+  if (tag) return { kind: tag[1].toLowerCase(), id: tag[2].trim() };
+
+  let m;
+  if ((m = v.match(/steampowered\.com\/app\/(\d+)/i))) return { kind: "steam", id: m[1] };
+  if ((m = v.match(/rawg\.io\/games\/([^/?#\s]+)/i))) return { kind: "rawg", id: m[1] };
+  if ((m = v.match(/steamgriddb\.com\/game\/(\d+)/i))) return { kind: "sgdb", id: m[1] };
+  if ((m = v.match(/igdb\.com\/games\/([^/?#\s]+)/i))) return { kind: "igdb", id: m[1] };
+
+  // Xbox / Microsoft Store: ссылка или «slug/ID» — ID это последний сегмент из 12 символов
+  if (/^(https?:\/\/|www\.)|\//i.test(v) || /^[A-Za-z0-9-]+\/[A-Za-z0-9]{12}$/.test(v)) {
+    const segs = v.split(/[?#]/)[0].split("/").filter(Boolean);
+    const last = segs[segs.length - 1];
+    if (/^[A-Za-z0-9]{12}$/.test(last) && /\d/.test(last) && /[A-Za-z]/.test(last)) {
+      return { kind: "xbox", id: last.toUpperCase() };
+    }
+  }
+  // Голый ID Xbox: 12 символов; начинается с 9, либо с B и содержит минимум 2 цифры (чтобы не спутать с названием)
+  if (
+    /^9[A-Za-z0-9]{11}$/.test(v) ||
+    (/^[Bb][A-Za-z0-9]{11}$/.test(v) && (v.match(/\d/g) ?? []).length >= 2)
+  ) {
+    return { kind: "xbox", id: v.toUpperCase() };
+  }
+  return { kind: "term", term: v };
+}
+
 export async function run({ outDir, cacheDir = ".covers-cache", games, overrides = {} }) {
   if (!process.env.RAWG_KEY) {
     console.warn(
@@ -502,6 +548,14 @@ export async function run({ outDir, cacheDir = ".covers-cache", games, overrides
         "Для лучшего результата добавьте RAWG_KEY (Settings → Secrets and variables → Actions)."
     );
   }
+  // Ключи можно писать как угодно (в т.ч. прямо из прайса): приводим к виду сайта
+  const ov = {};
+  for (const [k, v] of Object.entries(overrides)) {
+    if (k.startsWith("_")) continue;
+    ov[normalizeTitle(k) || k.toLowerCase()] = v;
+  }
+  overrides = ov;
+
   const imagesDir = path.join(cacheDir, "images");
   await fs.mkdir(imagesDir, { recursive: true });
   const statePath = path.join(cacheDir, "state.json");
@@ -543,8 +597,10 @@ export async function run({ outDir, cacheDir = ".covers-cache", games, overrides
 
   for (const key of wanted.keys()) {
     const entry = state[key];
-    const fresh =
-      entry && (!entry.miss || Date.now() - entry.miss < RETRY_MISS_AFTER_MS) && !overrides[key];
+    const sig = overrides[key] !== undefined ? String(overrides[key]) : undefined;
+    const fresh = sig
+      ? entry?.src === sig // привязка не менялась — повторно не качаем
+      : entry && !entry.src && (!entry.miss || Date.now() - entry.miss < RETRY_MISS_AFTER_MS);
     const hasFile = entry?.image && (await fs.stat(path.join(cacheDir, entry.image)).catch(() => null));
     if (fresh && (entry.miss || hasFile)) continue;
 
@@ -554,22 +610,21 @@ export async function run({ outDir, cacheDir = ".covers-cache", games, overrides
     }
 
     const override = overrides[key];
-    const isTag = (tag) => typeof override === "string" && override.startsWith(`${tag}:`);
-    const term = typeof override === "string" && !/^(rawg|xbox|igdb|sgdb):/.test(override) ? override : key;
-    const steamId = typeof override === "number" ? override : undefined;
+    const spec = override !== undefined ? parseOverride(override) : { kind: "term", term: key };
+    const term = spec.kind === "term" ? spec.term : key;
 
     let meta = null;
     try {
-      if (steamId) {
-        meta = await fromSteam(term, imagesDir, steamId);
-      } else if (isTag("rawg")) {
-        meta = await fromRawgId(override.slice(5), imagesDir);
-      } else if (isTag("xbox")) {
-        meta = await fromXboxId(override.slice(5), imagesDir);
-      } else if (isTag("igdb")) {
-        meta = await fromIgdbId(override.slice(5), imagesDir);
-      } else if (isTag("sgdb")) {
-        meta = await fromSgdbId(override.slice(5), imagesDir);
+      if (spec.kind === "steam") {
+        meta = await fromSteam(term, imagesDir, spec.id);
+      } else if (spec.kind === "rawg") {
+        meta = await fromRawgId(spec.id, imagesDir);
+      } else if (spec.kind === "xbox") {
+        meta = await fromXboxId(spec.id, imagesDir);
+      } else if (spec.kind === "igdb") {
+        meta = await fromIgdbId(spec.id, imagesDir);
+      } else if (spec.kind === "sgdb") {
+        meta = await fromSgdbId(spec.id, imagesDir);
       } else {
         const variants = termVariants(term);
         // Порядок источников: RAWG → магазин Xbox → IGDB → SteamGridDB → Steam
@@ -601,11 +656,11 @@ export async function run({ outDir, cacheDir = ".covers-cache", games, overrides
     await sleep(DELAY_MS);
 
     if (meta) {
-      state[key] = meta;
+      state[key] = sig ? { ...meta, src: sig } : meta;
       found++;
       console.log(`  + ${key} -> ${meta.image} [${meta.genres.join(", ")}]`);
     } else {
-      state[key] = { miss: Date.now() };
+      state[key] = sig ? { miss: Date.now(), src: sig } : { miss: Date.now() };
       missed++;
       console.log(`  - ${key}: не найдено`);
     }
