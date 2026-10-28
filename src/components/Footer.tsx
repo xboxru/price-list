@@ -1,7 +1,50 @@
 import { BadgeCheck, Clock, Copy, MessageCircleQuestion, Send, ShoppingCart } from "lucide-react";
+import { useEffect, useState } from "react";
 import { TG_CHANNEL, TG_PM } from "../lib/games";
 
+const dateFormat = new Intl.DateTimeFormat("ru-RU", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
+/** «28 октября 2026» (без «г.») */
+const formatToday = () => dateFormat.format(new Date()).replace(/\s*г\.$/, "");
+
+/** Сегодняшняя дата; сама обновляется в полночь и при возвращении на вкладку */
+function useToday() {
+  const [today, setToday] = useState(formatToday);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+
+    const schedule = () => {
+      const now = new Date();
+      const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5);
+      timer = setTimeout(() => {
+        setToday(formatToday());
+        schedule();
+      }, nextMidnight.getTime() - now.getTime());
+    };
+    schedule();
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") setToday(formatToday());
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
+
+  return today;
+}
+
 export default function Footer() {
+  const today = useToday();
+
   return (
     <footer className="footer">
       <div className="footer-grid">
@@ -58,7 +101,7 @@ export default function Footer() {
       </div>
 
       <div className="footer-bottom">
-        <span>XP Box · прайс-лист игр</span>
+        <span>XP Box · прайс-лист игр на {today}</span>
         <span>Цены обновляются автоматически · скидки недели — каждый понедельник</span>
       </div>
     </footer>
