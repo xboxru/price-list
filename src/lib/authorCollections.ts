@@ -26,6 +26,9 @@ import { normalizeTitle } from "./coverLookup.ts";
  *                  снова станет дешевле, вернётся.
  *
  * Ниже примеры — замените их на свои подборки.
+ *
+ * ВАЖНО: если в Google Таблице есть лист «Подборки» (см. src/lib/adminSheet.ts),
+ * сайт берёт подборки оттуда, а этот список служит запасным.
  */
 /** Название игры или название с порогом цены */
 export type PickEntry = string | { game: string; maxPrice?: number };
@@ -153,7 +156,10 @@ function findGame(entry: string, candidates: Candidate[]): Game | undefined {
   return partial[0]?.game;
 }
 
-export function resolveAuthorCollections(games: Game[]): AuthorCollection[] {
+export function resolveAuthorCollections(
+  games: Game[],
+  defs: AuthorCollectionDef[] = AUTHOR_COLLECTIONS
+): AuthorCollection[] {
   const candidates = games
     .filter((g) => g.priceValue > 0 && !g.isPreorder)
     .map((game) => ({
@@ -163,7 +169,7 @@ export function resolveAuthorCollections(games: Game[]): AuthorCollection[] {
       edition: editionOf(game.name),
     }));
 
-  return AUTHOR_COLLECTIONS.map((def) => {
+  return defs.map((def) => {
     const cards: CollectionCard[] = [];
     const missing: string[] = [];
     const seen = new Set<string>();

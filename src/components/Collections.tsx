@@ -1,7 +1,12 @@
 import { Plus, ShoppingCart, Sparkles } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { resolveCollection, type CollectionCard } from "../lib/collections";
-import { resolveAuthorCollections } from "../lib/authorCollections";
+import {
+  AUTHOR_COLLECTIONS,
+  resolveAuthorCollections,
+  type AuthorCollectionDef,
+} from "../lib/authorCollections";
+import { fetchAuthorDefs } from "../lib/adminSheet";
 import { useGameCover } from "../hooks/useGameCover";
 import type { Game } from "../lib/games";
 import { CoverView } from "./CoverImage";
@@ -75,9 +80,21 @@ const DAILY = "daily";
 
 export default function Collections({ games, cartIds, addToCart, openCart }: CollectionsProps) {
   const daily = useMemo(() => resolveCollection(games), [games]);
+  // Подборки из листа «Подборки» в Google Таблице; если листа нет — список из кода
+  const [defs, setDefs] = useState<AuthorCollectionDef[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetchAuthorDefs().then((d) => {
+      if (!cancelled) setDefs(d ?? AUTHOR_COLLECTIONS);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const authors = useMemo(
-    () => resolveAuthorCollections(games).filter((c) => c.cards.length > 0),
-    [games]
+    () => (defs ? resolveAuthorCollections(games, defs).filter((c) => c.cards.length > 0) : []),
+    [games, defs]
   );
   const [active, setActive] = useState<string>(DAILY);
 
