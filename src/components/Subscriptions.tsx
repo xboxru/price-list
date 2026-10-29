@@ -2,7 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { BadgeCheck, Check, Gamepad, Plus, ShoppingCart, Sparkles, UserPlus } from "lucide-react";
 import { formatPrice } from "../lib/games";
-import { SUBSCRIPTIONS, SUBSCRIPTIONS_NEW, SUBSCRIPTIONS_PS, SubscriptionPlan } from "../lib/subscriptions";
+import {
+  REGION_ACCOUNTS,
+  REGION_LABELS,
+  SUBSCRIPTIONS,
+  SUBSCRIPTIONS_EA,
+  SUBSCRIPTIONS_NEW,
+  SUBSCRIPTIONS_PS,
+  SubscriptionPlan,
+  type Region,
+} from "../lib/subscriptions";
 import { fetchSubscriptionPrices } from "../lib/adminSheet";
 
 const ease = [0.2, 0.7, 0.2, 1] as const;
@@ -66,6 +75,7 @@ function SubCard({ plan, index, accent = "green", inCart = false, priceReady = t
       <div className="sub-header">
         {isPs && (
           <div className={`sub-series ${
+            plan.name.includes("EA") ? "sub-series-ea" :
             plan.name.includes("Deluxe") ? "sub-series-deluxe" :
             plan.name.includes("Extra") ? "sub-series-extra" :
             "sub-series-essential"
@@ -125,7 +135,22 @@ export default function Subscriptions({
     plans.map((p) => ({ ...p, price: prices[p.id.toLowerCase()] ?? p.price }));
   const plansOwn = useMemo(() => withPrices(SUBSCRIPTIONS), [prices]);
   const plansNew = useMemo(() => withPrices(SUBSCRIPTIONS_NEW), [prices]);
-  const plansPs = useMemo(() => withPrices(SUBSCRIPTIONS_PS), [prices]);
+  // PlayStation и EA Play: показываем только подписки с указанной ценой, по выбранному региону
+  const plansPsAll = useMemo(() => withPrices(SUBSCRIPTIONS_PS).filter((p) => p.price > 0), [prices]);
+  const plansEaAll = useMemo(() => withPrices(SUBSCRIPTIONS_EA).filter((p) => p.price > 0), [prices]);
+  const regions = useMemo(
+    () =>
+      (["tr", "ua"] as Region[]).filter(
+        (r) => plansPsAll.some((p) => p.region === r) || plansEaAll.some((p) => p.region === r)
+      ),
+    [plansPsAll, plansEaAll]
+  );
+  const [chosenRegion, setChosenRegion] = useState<Region>("tr");
+  const region: Region = regions.includes(chosenRegion) ? chosenRegion : regions[0] ?? "tr";
+  const plansPs = plansPsAll.filter((p) => p.region === region);
+  const plansEa = plansEaAll.filter((p) => p.region === region);
+  const cartName = (p: SubscriptionPlan) =>
+    `${p.name} · ${p.duration}${p.region ? ` · ${REGION_LABELS[p.region]}` : ""}`;
 
   return (
     <section className="subs-section">
@@ -217,6 +242,22 @@ export default function Subscriptions({
         </div>
       </div>
 
+      {regions.length > 1 && (
+        <div className="collection-tabs" role="tablist" aria-label="Регион аккаунта PlayStation">
+          {regions.map((r) => (
+            <button
+              key={r}
+              role="tab"
+              aria-selected={r === region}
+              className={`collection-tab ${r === region ? "active" : ""}`}
+              onClick={() => setChosenRegion(r)}
+            >
+              {REGION_ACCOUNTS[r]}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="subs-grid">
         {plansPs.map((plan, i) => (
           <SubCard
@@ -226,16 +267,39 @@ export default function Subscriptions({
             accent="ps"
             priceReady={ready}
             inCart={cartIds.has(`sub-ps-${plan.id}`)}
-            onAddToCart={() => addToCart(`sub-ps-${plan.id}`, `${plan.name} · ${plan.duration}`, formatPrice(plan.price))}
+            onAddToCart={() => addToCart(`sub-ps-${plan.id}`, cartName(plan), formatPrice(plan.price))}
             onOpenCart={openCart}
           />
         ))}
       </div>
 
+      {plansEa.length > 0 && (
+        <>
+          <h3 className="subs-subhead">
+            EA Play <span>· отдельная подписка{regions.length > 1 ? `, ${REGION_ACCOUNTS[region].toLowerCase()}` : ""}</span>
+          </h3>
+          <div className="subs-grid">
+            {plansEa.map((plan, i) => (
+              <SubCard
+                key={plan.id}
+                plan={plan}
+                index={i}
+                accent="ps"
+                priceReady={ready}
+                inCart={cartIds.has(`sub-ps-${plan.id}`)}
+                onAddToCart={() => addToCart(`sub-ps-${plan.id}`, cartName(plan), formatPrice(plan.price))}
+                onOpenCart={openCart}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
       <div className="subs-info-box" style={{ borderColor: "rgba(0,112,209,0.25)" }}>
         <p>
-          <strong>PlayStation:</strong> Подписки Essential, Extra и Deluxe для вашего аккаунта (любой регион). 
-          Также доступна подписка EA Play для доступа к библиотеке Electronic Arts.
+          <strong>PlayStation · {REGION_LABELS[region]}:</strong> Подписки Essential, Extra и Deluxe для{" "}
+          {region === "ua" ? "украинского" : "турецкого"} аккаунта PlayStation Network.
+          {plansEa.length > 0 && " EA Play оформляется отдельно: доступ к библиотеке игр Electronic Arts."}
         </p>
       </div>
     </section>
