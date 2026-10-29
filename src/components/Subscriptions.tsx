@@ -1,20 +1,47 @@
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { BadgeCheck, Check, Gamepad, Plus, ShoppingCart, Sparkles, UserPlus } from "lucide-react";
 import { formatPrice } from "../lib/games";
 import { SUBSCRIPTIONS, SUBSCRIPTIONS_NEW, SUBSCRIPTIONS_PS, SubscriptionPlan } from "../lib/subscriptions";
+import { fetchSubscriptionPrices } from "../lib/adminSheet";
 
 const ease = [0.2, 0.7, 0.2, 1] as const;
+
+// Цены из листа «Подписки» Google Таблицы грузим один раз за сессию
+let pricesPromise: Promise<Record<string, number> | null> | null = null;
+const loadPrices = () => (pricesPromise ??= fetchSubscriptionPrices());
+
+/** Цены из таблицы; ready=false, пока идёт загрузка (цены не показываем, чтобы не мигали старые) */
+function useSheetPrices() {
+  const [state, setState] = useState<{ ready: boolean; prices: Record<string, number> }>({
+    ready: false,
+    prices: {},
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    loadPrices().then((prices) => {
+      if (!cancelled) setState({ ready: true, prices: prices ?? {} });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return state;
+}
 
 interface SubCardProps {
   plan: SubscriptionPlan;
   index: number;
   accent?: "green" | "violet" | "ps";
   inCart?: boolean;
+  priceReady?: boolean;
   onAddToCart: () => void;
   onOpenCart: () => void;
 }
 
-function SubCard({ plan, index, accent = "green", inCart = false, onAddToCart, onOpenCart }: SubCardProps) {
+function SubCard({ plan, index, accent = "green", inCart = false, priceReady = true, onAddToCart, onOpenCart }: SubCardProps) {
   const isViolet = accent === "violet";
   const isPs = accent === "ps";
   
@@ -46,7 +73,9 @@ function SubCard({ plan, index, accent = "green", inCart = false, onAddToCart, o
         )}
         <h3>{plan.duration}</h3>
         <div className="sub-price-row">
-          <div className="sub-price">{formatPrice(plan.price)}</div>
+          <div className="sub-price" style={priceReady ? undefined : { opacity: 0.35 }}>
+            {priceReady ? formatPrice(plan.price) : "…"}
+          </div>
         </div>
       </div>
       <p className="sub-desc">{plan.description}</p>
@@ -72,6 +101,7 @@ function SubCard({ plan, index, accent = "green", inCart = false, onAddToCart, o
           className={`btn ${btnClass}`}
           style={{ width: "100%", marginTop: "auto" }}
           onClick={onAddToCart}
+          disabled={!priceReady}
         >
           <Plus size={16} />
           <span style={{ position: "relative", top: "-1px" }}>В корзину</span>
@@ -90,6 +120,13 @@ export default function Subscriptions({
   addToCart: (id: string, name: string, price: string) => void;
   openCart: () => void;
 }) {
+  const { ready, prices } = useSheetPrices();
+  const withPrices = (plans: SubscriptionPlan[]) =>
+    plans.map((p) => ({ ...p, price: prices[p.id.toLowerCase()] ?? p.price }));
+  const plansOwn = useMemo(() => withPrices(SUBSCRIPTIONS), [prices]);
+  const plansNew = useMemo(() => withPrices(SUBSCRIPTIONS_NEW), [prices]);
+  const plansPs = useMemo(() => withPrices(SUBSCRIPTIONS_PS), [prices]);
+
   return (
     <section className="subs-section">
       {/* ── Подписки на свой аккаунт ── */}
@@ -106,12 +143,13 @@ export default function Subscriptions({
       </div>
 
       <div className="subs-grid">
-        {SUBSCRIPTIONS.map((plan, i) => (
+        {plansOwn.map((plan, i) => (
           <SubCard
             key={plan.id}
             plan={plan}
             index={i}
             accent="green"
+            priceReady={ready}
             inCart={cartIds.has(`sub-${plan.id}`)}
             onAddToCart={() => addToCart(`sub-${plan.id}`, `${plan.name} · ${plan.duration}`, formatPrice(plan.price))}
             onOpenCart={openCart}
@@ -142,12 +180,13 @@ export default function Subscriptions({
       </div>
 
       <div className="subs-grid">
-        {SUBSCRIPTIONS_NEW.map((plan, i) => (
+        {plansNew.map((plan, i) => (
           <SubCard
             key={plan.id}
             plan={plan}
             index={i}
             accent="violet"
+            priceReady={ready}
             inCart={cartIds.has(`sub-new-${plan.id}`)}
             onAddToCart={() => addToCart(`sub-new-${plan.id}`, `${plan.name} · ${plan.duration}`, formatPrice(plan.price))}
             onOpenCart={openCart}
@@ -179,12 +218,13 @@ export default function Subscriptions({
       </div>
 
       <div className="subs-grid">
-        {SUBSCRIPTIONS_PS.map((plan, i) => (
+        {plansPs.map((plan, i) => (
           <SubCard
             key={plan.id}
             plan={plan}
             index={i}
             accent="ps"
+            priceReady={ready}
             inCart={cartIds.has(`sub-ps-${plan.id}`)}
             onAddToCart={() => addToCart(`sub-ps-${plan.id}`, `${plan.name} · ${plan.duration}`, formatPrice(plan.price))}
             onOpenCart={openCart}

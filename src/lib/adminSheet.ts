@@ -19,6 +19,12 @@ import type { AuthorCollectionDef, PickEntry } from "./authorCollections.ts";
  *    B: Ссылка        — хвост ссылки Xbox (the-sims-4-v-restorane/brtfkmgz6rf2),
  *                       ссылка на Steam/RAWG/IGDB/SteamGridDB или другое название для поиска
  *
+ *  Лист «Подписки»  (цены на подписки)
+ *    A: ID            — код подписки (gpu-1, new-6, ps-extra-3 …, список в шаблоне Подписки.csv)
+ *    B: Цена          — цена в рублях (можно с пробелами и значком ₽)
+ *    C: Подписка      — справочно, для вашего удобства (сайт эту колонку не читает)
+ *    Если ID нет в таблице, сайт показывает цену из subscriptions.ts.
+ *
  * Если листа нет или он пуст, сайт использует список из authorCollections.ts.
  * Таблица должна быть доступна по ссылке («Все, у кого есть ссылка — просмотр»),
  * как и лист с прайсом.
@@ -28,15 +34,21 @@ import type { AuthorCollectionDef, PickEntry } from "./authorCollections.ts";
 export const ADMIN_SHEET_ID = SHEET_ID;
 export const COLLECTIONS_TAB = "Подборки";
 export const COVERS_TAB = "Обложки";
+export const SUBSCRIPTIONS_TAB = "Подписки";
 
 type Rows = string[][];
+
+/** Таймаут, чтобы зависший запрос не блокировал сайт (на старых браузерах без AbortSignal.timeout — без таймаута) */
+function timeoutSignal(ms: number): AbortSignal | undefined {
+  return typeof AbortSignal !== "undefined" && "timeout" in AbortSignal ? AbortSignal.timeout(ms) : undefined;
+}
 
 async function fetchTab(tab: string, range: string, init?: RequestInit): Promise<Rows | null> {
   const url =
     `https://sheets.googleapis.com/v4/spreadsheets/${ADMIN_SHEET_ID}/values/` +
     `${encodeURIComponent(`${tab}!${range}`)}?key=${API_KEY}`;
   try {
-    const res = await fetch(url, init);
+    const res = await fetch(url, { signal: timeoutSignal(8000), ...init });
     if (!res.ok) return null; // листа нет или нет доступа
     const json = await res.json();
     return (json.values ?? []) as Rows;
@@ -110,4 +122,23 @@ export async function fetchAuthorDefs(init?: RequestInit): Promise<AuthorCollect
 export async function fetchCoverOverrides(init?: RequestInit): Promise<Record<string, string> | null> {
   const rows = await fetchTab(COVERS_TAB, "A:B", init);
   return rows ? parseCoverRows(rows) : null;
+}
+
+/** ID подписки → цена (₽) из листа «Подписки» */
+export function parseSubscriptionRows(rows: Rows): Record<string, number> {
+  const out: Record<string, number> = {};
+  rows.forEach((row, index) => {
+    const id = cell(row, 0).toLowerCase();
+    const raw = cell(row, 1);
+    if (!id) return;
+    if (index === 0 && /^id$|^код$/i.test(id)) return; // строка-заголовок
+    const price = parsePrice(raw);
+    if (price) out[id] = price;
+  });
+  return out;
+}
+
+export async function fetchSubscriptionPrices(init?: RequestInit): Promise<Record<string, number> | null> {
+  const rows = await fetchTab(SUBSCRIPTIONS_TAB, "A:C", init);
+  return rows ? parseSubscriptionRows(rows) : null;
 }
