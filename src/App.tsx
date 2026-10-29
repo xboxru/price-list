@@ -10,6 +10,7 @@ import Footer from "./components/Footer";
 import Header from "./components/Header";
 import Marquee from "./components/Marquee";
 import Navbar from "./components/Navbar";
+import Slider from "./components/Slider";
 import Subscriptions from "./components/Subscriptions";
 import { ScrollTop, Toast } from "./components/Overlays";
 import { useCopyToast } from "./hooks/useCopyToast";
@@ -96,6 +97,8 @@ export default function App() {
 
         <div className="shell" style={{ paddingTop: "60px" }}>
           <Header total={games.length} />
+
+          <Slider games={games} cartIds={cartIds} addToCart={addToCart} openCart={openCart} />
 
         <div className="nav-tabs">
           <button

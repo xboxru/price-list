@@ -120,7 +120,7 @@ function editionOf(name: string): Set<string> {
   return found;
 }
 
-interface Candidate {
+export interface Candidate {
   game: Game;
   key: string;
   words: Set<string>;
@@ -132,7 +132,7 @@ interface Candidate {
  * Издание учитывается: если в запросе есть Premium/Deluxe/…, берётся именно оно;
  * если издание не указано — предпочитается обычная версия.
  */
-function findGame(entry: string, candidates: Candidate[]): Game | undefined {
+export function findGame(entry: string, candidates: Candidate[]): Game | undefined {
   const key = normalizeTitle(entry);
   const words = tokens(entry);
   if (!words.size) return undefined;
@@ -154,6 +154,18 @@ function findGame(entry: string, candidates: Candidate[]): Game | undefined {
     (a, b) => a.words.size - b.words.size || a.game.priceValue - b.game.priceValue
   );
   return partial[0]?.game;
+}
+
+/** Подготовка прайса для поиска игр по названию (издание учитывается) */
+export function buildCandidates(games: Game[]): Candidate[] {
+  return games
+    .filter((g) => g.priceValue > 0 && !g.isPreorder)
+    .map((game) => ({
+      game,
+      key: normalizeTitle(game.name),
+      words: tokens(game.name),
+      edition: editionOf(game.name),
+    }));
 }
 
 export function resolveAuthorCollections(

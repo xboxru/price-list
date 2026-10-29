@@ -27,7 +27,8 @@ import { SHEET_URL, parseSheet } from "../src/lib/games.ts";
 import { normalizeTitle } from "../src/lib/coverLookup.ts";
 import { resolveCollection } from "../src/lib/collections.ts";
 import { resolveAuthorCollections } from "../src/lib/authorCollections.ts";
-import { fetchAuthorDefs, fetchCoverOverrides } from "../src/lib/adminSheet.ts";
+import { fetchAuthorDefs, fetchCoverOverrides, fetchSliderDefs } from "../src/lib/adminSheet.ts";
+import { resolveSlides, SLIDES_FALLBACK } from "../src/lib/slider.ts";
 import { resolveDeals } from "../src/lib/games.ts";
 
 const UA = "Mozilla/5.0 (compatible; xpbox-cover-bot/1.0)";
@@ -542,7 +543,7 @@ export function parseOverride(value) {
   return { kind: "term", term: v };
 }
 
-export async function run({ outDir, cacheDir = ".covers-cache", games, overrides = {}, authorDefs }) {
+export async function run({ outDir, cacheDir = ".covers-cache", games, overrides = {}, authorDefs, sliderDefs = SLIDES_FALLBACK }) {
   if (!process.env.RAWG_KEY) {
     console.warn(
       "::warning::Секрет RAWG_KEY не задан — обложки ищутся без RAWG. " +
@@ -584,6 +585,8 @@ export async function run({ outDir, cacheDir = ".covers-cache", games, overrides
       console.log(`::warning::Авторская подборка «${ac.title}»: не показаны — ${ac.missing.join("; ")}`);
     }
   }
+  // Слайдер вверху сайта: тоже всегда показывается
+  for (const slide of resolveSlides(games, sliderDefs)) titles.add(slide.coverTitle);
   const wanted = new Map();
   for (const title of titles) {
     const key = normalizeTitle(title);
@@ -746,10 +749,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       ? `Авторские подборки из таблицы: ${authorDefs.map((d) => `${d.title} (${d.games.length})`).join(", ")}`
       : "Лист «Подборки» не найден или пуст — используется список из authorCollections.ts"
   );
+  const sliderDefs = (await fetchSliderDefs({ headers })) ?? SLIDES_FALLBACK;
+  console.log(`Слайдов в слайдере: ${sliderDefs.length}`);
   const sheetOverrides = await fetchCoverOverrides({ headers });
   if (sheetOverrides) {
     console.log(`Привязки обложек из таблицы: ${Object.keys(sheetOverrides).length}`);
   }
 
-  await run({ outDir, games, overrides: { ...overrides, ...(sheetOverrides ?? {}) }, authorDefs });
+  await run({ outDir, games, overrides: { ...overrides, ...(sheetOverrides ?? {}) }, authorDefs, sliderDefs });
 }

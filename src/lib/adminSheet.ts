@@ -1,5 +1,6 @@
 import { SHEET_ID, API_KEY } from "./games.ts";
 import type { AuthorCollectionDef, PickEntry } from "./authorCollections.ts";
+import type { SlideDef } from "./slider.ts";
 
 /**
  * «Админка» в Google Таблице.
@@ -19,6 +20,14 @@ import type { AuthorCollectionDef, PickEntry } from "./authorCollections.ts";
  *    B: Ссылка        — хвост ссылки Xbox (the-sims-4-v-restorane/brtfkmgz6rf2),
  *                       ссылка на Steam/RAWG/IGDB/SteamGridDB или другое название для поиска
  *
+ *  Лист «Слайдер»  (баннеры вверху сайта: топовые игры, новинки)
+ *    A: Игра          — название игры как в прайсе (картинка, цена и «В корзину» подставятся сами)
+ *    B: Метка         — необязательно: «Новинка», «Топ продаж», «Скоро» …
+ *    C: Заголовок     — необязательно: свой заголовок (по умолчанию — название игры)
+ *    D: Описание      — необязательно: короткий текст
+ *    E: Показывать    — необязательно: «нет» скрывает слайд, не удаляя строку
+ *    Слайды идут сверху вниз в порядке строк, максимум 8.
+ *
  *  Лист «Подписки»  (цены на подписки)
  *    A: ID            — код подписки (gpu-1, new-6, ps-extra-3 …, список в шаблоне Подписки.csv)
  *    B: Цена          — цена в рублях (можно с пробелами и значком ₽)
@@ -35,6 +44,7 @@ export const ADMIN_SHEET_ID = SHEET_ID;
 export const COLLECTIONS_TAB = "Подборки";
 export const COVERS_TAB = "Обложки";
 export const SUBSCRIPTIONS_TAB = "Подписки";
+export const SLIDER_TAB = "Слайдер";
 
 type Rows = string[][];
 
@@ -141,4 +151,22 @@ export function parseSubscriptionRows(rows: Rows): Record<string, number> {
 export async function fetchSubscriptionPrices(init?: RequestInit): Promise<Record<string, number> | null> {
   const rows = await fetchTab(SUBSCRIPTIONS_TAB, "A:C", init);
   return rows ? parseSubscriptionRows(rows) : null;
+}
+
+export function parseSlideRows(rows: Rows): SlideDef[] {
+  const defs: SlideDef[] = [];
+  rows.forEach((row, index) => {
+    const [game, label, title, text, show] = [0, 1, 2, 3, 4].map((i) => cell(row, i));
+    if (!game) return;
+    if (index === 0 && /^игр/i.test(game) && /метк/i.test(label)) return; // строка-заголовок
+    if (/^(нет|no|0|скрыть|false)$/i.test(show)) return;
+    defs.push({ game, label: label || undefined, title: title || undefined, text: text || undefined });
+  });
+  return defs;
+}
+
+/** Слайды из листа «Слайдер»; null, если листа нет (тогда запасной список из slider.ts) */
+export async function fetchSliderDefs(init?: RequestInit): Promise<SlideDef[] | null> {
+  const rows = await fetchTab(SLIDER_TAB, "A:E", init);
+  return rows ? parseSlideRows(rows) : null;
 }
