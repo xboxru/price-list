@@ -26,6 +26,9 @@ import type { SlideDef } from "./slider.ts";
  *    C: Заголовок     — необязательно: свой заголовок (по умолчанию — название игры)
  *    D: Описание      — необязательно: короткий текст
  *    E: Показывать    — необязательно: «нет» скрывает слайд, не удаляя строку
+ *    F: Цвет          — необязательно: цвет метки (зелёный, оранжевый, красный, синий,
+ *                       фиолетовый, розовый, жёлтый, голубой или #RRGGBB). Если пусто,
+ *                       цвет подбирается по смыслу метки («Новинка» — зелёный, «Хит» — оранжевый…)
  *    Слайды идут сверху вниз в порядке строк, максимум 8.
  *
  *  Лист «Подписки»  (цены на подписки)
@@ -156,17 +159,23 @@ export async function fetchSubscriptionPrices(init?: RequestInit): Promise<Recor
 export function parseSlideRows(rows: Rows): SlideDef[] {
   const defs: SlideDef[] = [];
   rows.forEach((row, index) => {
-    const [game, label, title, text, show] = [0, 1, 2, 3, 4].map((i) => cell(row, i));
+    const [game, label, title, text, show, color] = [0, 1, 2, 3, 4, 5].map((i) => cell(row, i));
     if (!game) return;
     if (index === 0 && /^игр/i.test(game) && /метк/i.test(label)) return; // строка-заголовок
     if (/^(нет|no|0|скрыть|false)$/i.test(show)) return;
-    defs.push({ game, label: label || undefined, title: title || undefined, text: text || undefined });
+    defs.push({
+      game,
+      label: label || undefined,
+      title: title || undefined,
+      text: text || undefined,
+      color: color || undefined,
+    });
   });
   return defs;
 }
 
 /** Слайды из листа «Слайдер»; null, если листа нет (тогда запасной список из slider.ts) */
 export async function fetchSliderDefs(init?: RequestInit): Promise<SlideDef[] | null> {
-  const rows = await fetchTab(SLIDER_TAB, "A:E", init);
+  const rows = await fetchTab(SLIDER_TAB, "A:F", init);
   return rows ? parseSlideRows(rows) : null;
 }

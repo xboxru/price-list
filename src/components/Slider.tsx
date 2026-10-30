@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Plus, ShoppingCart } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchSliderDefs } from "../lib/adminSheet";
 import type { Game } from "../lib/games";
-import { SLIDES_FALLBACK, resolveSlides, type Slide, type SlideDef } from "../lib/slider";
+import { SLIDES_FALLBACK, labelTone, resolveSlides, type Slide, type SlideDef } from "../lib/slider";
 import { useGameCover } from "../hooks/useGameCover";
 import { CoverView } from "./CoverImage";
 
@@ -31,6 +31,7 @@ function SlideView({
 }) {
   const { src, loading, genres } = useGameCover(slide.coverTitle);
   const card = slide.card;
+  const tone = slide.label ? labelTone(slide.label, slide.color) : null;
 
   return (
     <>
@@ -44,7 +45,14 @@ function SlideView({
       </div>
       <div className="slide-shade" />
       <div className="slide-body">
-        {slide.label && <span className="slide-label">{slide.label}</span>}
+        {slide.label && tone && (
+          <span
+            className="slide-label"
+            style={{ background: tone.bg, color: tone.fg, boxShadow: `0 0 22px ${tone.bg}55` }}
+          >
+            {slide.label}
+          </span>
+        )}
         <h2 className="slide-title">{slide.title}</h2>
         {slide.text && <p className="slide-text">{slide.text}</p>}
         {genres.length > 0 && <div className="slide-genres">{genres.join(" · ")}</div>}
