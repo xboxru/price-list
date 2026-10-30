@@ -48,7 +48,7 @@ function SlideView({
         {slide.label && tone && (
           <span
             className="slide-label"
-            style={{ background: tone.bg, color: tone.fg, boxShadow: `0 0 22px ${tone.bg}55` }}
+            style={{ background: tone.bg, color: tone.fg }}
           >
             {slide.label}
           </span>

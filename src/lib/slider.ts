@@ -66,7 +66,7 @@ interface Tone {
 }
 
 const TONES: Record<string, Tone> = {
-  green: { bg: "#00ff9d", fg: "#04120c" },
+  green: { bg: "#90f910", fg: "#151515" },
   orange: { bg: "#ffa23a", fg: "#1a0e00" },
   red: { bg: "#ff4d5e", fg: "#ffffff" },
   violet: { bg: "#8b6cff", fg: "#ffffff" },
