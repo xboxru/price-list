@@ -586,7 +586,15 @@ export async function run({ outDir, cacheDir = ".covers-cache", games, overrides
     }
   }
   // Слайдер вверху сайта: тоже всегда показывается
-  for (const slide of resolveSlides(games, sliderDefs)) titles.add(slide.coverTitle);
+  const slides = resolveSlides(games, sliderDefs);
+  for (const slide of slides) titles.add(slide.coverTitle);
+  const noPrice = slides.filter((sl) => !sl.card).map((sl) => sl.coverTitle);
+  if (noPrice.length) {
+    console.log(
+      `::warning::Слайдер: нет в прайсе (показываются без цены и кнопки «В корзину») — ${noPrice.join(", ")}. ` +
+        "Проверьте, что название совпадает с прайсом."
+    );
+  }
   const wanted = new Map();
   for (const title of titles) {
     const key = normalizeTitle(title);

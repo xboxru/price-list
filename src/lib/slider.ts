@@ -35,7 +35,8 @@ export interface Slide {
 }
 
 export function resolveSlides(games: Game[], defs: SlideDef[]): Slide[] {
-  const candidates = buildCandidates(games);
+  // предзаказы тоже подходят: в слайдере часто показывают игры, которые скоро выйдут
+  const candidates = buildCandidates(games, true);
   const slides: Slide[] = [];
 
   for (const def of defs.slice(0, MAX_SLIDES)) {

@@ -157,9 +157,9 @@ export function findGame(entry: string, candidates: Candidate[]): Game | undefin
 }
 
 /** Подготовка прайса для поиска игр по названию (издание учитывается) */
-export function buildCandidates(games: Game[]): Candidate[] {
+export function buildCandidates(games: Game[], includePreorders = false): Candidate[] {
   return games
-    .filter((g) => g.priceValue > 0 && !g.isPreorder)
+    .filter((g) => g.priceValue > 0 && (includePreorders || !g.isPreorder))
     .map((game) => ({
       game,
       key: normalizeTitle(game.name),
