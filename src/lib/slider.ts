@@ -66,14 +66,14 @@ interface Tone {
 }
 
 const TONES: Record<string, Tone> = {
-  green: { bg: "#00ff9d", fg: "#04120c" },
-  orange: { bg: "#ffa23a", fg: "#1a0e00" },
+  green: { bg: "rgb(144, 249, 16)", fg: "rgb(21, 21, 21)" },
+  orange: { bg: "#ffa23a", fg: "rgb(21, 21, 21)" },
   red: { bg: "#ff4d5e", fg: "#ffffff" },
   violet: { bg: "#8b6cff", fg: "#ffffff" },
-  blue: { bg: "#3aa0ff", fg: "#04121f" },
-  pink: { bg: "#ff5cb8", fg: "#2a0618" },
-  yellow: { bg: "#ffd93a", fg: "#1a1500" },
-  cyan: { bg: "#34e1e1", fg: "#031a1a" },
+  blue: { bg: "#3aa0ff", fg: "rgb(21, 21, 21)" },
+  pink: { bg: "#ff5cb8", fg: "rgb(21, 21, 21)" },
+  yellow: { bg: "#ffd93a", fg: "rgb(21, 21, 21)" },
+  cyan: { bg: "#34e1e1", fg: "rgb(21, 21, 21)" },
 };
 
 const TONE_ALIASES: Record<string, string> = {
@@ -105,7 +105,7 @@ function hexTone(hex: string): Tone | null {
   const n = parseInt(m[1], 16);
   const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return { bg: `#${m[1]}`, fg: luminance > 0.6 ? "#0a0a0f" : "#ffffff" };
+  return { bg: `#${m[1]}`, fg: luminance > 0.6 ? "rgb(21, 21, 21)" : "#ffffff" };
 }
 
 /**
