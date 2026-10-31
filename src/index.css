@@ -2822,3 +2822,34 @@ img {
     bottom: 14px;
   }
 }
+
+/* ============================================================
+   ЦВЕТ #008746: кнопка «В корзину» в слайдере и активная вкладка
+   («Игры Xbox», «Подборки», «Подписки»)
+   ============================================================ */
+:root {
+  --btn-green: #008746;
+}
+
+.slide-buy .btn-primary {
+  background: var(--btn-green);
+  background-image: none;
+  border: 1px solid var(--btn-green);
+  color: #fff;
+  box-shadow: 0 12px 30px -12px rgba(0, 135, 70, 0.6);
+}
+.slide-buy .btn-primary:hover {
+  background: var(--btn-green);
+  background-image: none;
+  filter: brightness(1.12);
+  box-shadow: 0 16px 38px -12px rgba(0, 135, 70, 0.75);
+}
+.slide-buy .btn-primary svg { color: #fff; }
+
+.nav-tab.active {
+  background: var(--btn-green);
+  background-image: none;
+  border-color: var(--btn-green);
+  color: #fff;
+  box-shadow: 0 12px 28px -16px rgba(0, 135, 70, 0.7);
+}
