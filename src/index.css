@@ -809,20 +809,34 @@ img {
   padding: clamp(20px, 3vw, 32px);
 }
 
+/* Бейдж скидки в стиле Xbox */
 .discount-badge {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-weight: 800;
-  font-size: 15px;
-  color: #04120c;
-  background: var(--accent);
-  border-radius: 10px;
-  padding: 6px 12px;
-  box-shadow: 0 8px 26px -8px rgba(0, 255, 157, 0.65);
-  margin-bottom: 14px;
+  justify-content: center;
+  width: fit-content;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 20px;
+  height: 20px;
+  min-width: 35px;
+  padding: 0 4px;
+  color: rgb(0, 0, 0);
+  background: rgb(255, 216, 0);
+  border: none;
+  border-radius: 4px;
+  text-align: center;
+  box-sizing: border-box;
+  box-shadow: none;
 }
+/* для длинного текста (СДЕЛКА НЕДЕЛИ) */
+.discount-badge.wide {
+  padding: 0 8px;
+  min-width: auto;
+  gap: 6px;
+}
+.deal-spot-body .discount-badge { margin-bottom: 14px; }
 .discount-badge.pulse { animation: badge-pop 2.6s ease-in-out infinite; }
 @keyframes badge-pop {
   0%, 100% { transform: scale(1) rotate(-2deg); }
@@ -1091,13 +1105,6 @@ img {
   left: 6px;
   top: 6px;
   z-index: 2;
-  font-family: var(--font-mono);
-  font-weight: 800;
-  font-size: 11px;
-  color: #04120c;
-  background: var(--accent);
-  padding: 3px 7px;
-  border-radius: 7px;
 }
 
 .deal-info {
@@ -1114,6 +1121,9 @@ img {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+.deal-spot-body .deal-platforms { margin: 0 0 12px; }
+.deal-info .store-platforms { margin: 0 0 6px; gap: 4px; }
+.deal-info .store-platform { padding: 3px 7px; font-size: 10.5px; }
 .deal-info .vibe {
   font-size: 11.5px;
   color: var(--muted);

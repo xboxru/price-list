@@ -4,6 +4,7 @@ import { useCountdown } from "../hooks/useCountdown";
 import CoverImage from "./CoverImage";
 import { useGameCover } from "../hooks/useGameCover";
 import { Deal, formatPrice, isoWeek } from "../lib/games";
+import { detectPlatforms, displayTitle } from "../lib/collections";
 
 interface DealsProps {
   deals: Deal[];
@@ -16,6 +17,19 @@ interface DealsProps {
 function DealVibe({ title, fallback }: { title: string; fallback: string }) {
   const { genres } = useGameCover(title);
   return <>{genres.length ? genres.join(" · ") : fallback}</>;
+}
+
+/** Платформы бейджами, как в подборках */
+function Platforms({ name, className = "" }: { name: string; className?: string }) {
+  return (
+    <div className={`store-platforms ${className}`}>
+      {detectPlatforms(name).map((platform) => (
+        <span className="store-platform" key={platform}>
+          {platform}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 export default function Deals({ deals, cartIds, addToCart, openCart }: DealsProps) {
@@ -66,11 +80,12 @@ export default function Deals({ deals, cartIds, addToCart, openCart }: DealsProp
             <CoverImage title={spotlight.game.name} cover={spotlight.cover} loading="eager" />
           </div>
           <div className="deal-spot-body">
-            <span className="discount-badge pulse">
+            <span className="discount-badge wide pulse">
               <Sparkles size={15} />
               −{Math.round(spotlight.discount * 100)}% СДЕЛКА НЕДЕЛИ
             </span>
-            <h3>{spotlight.game.name}</h3>
+            <h3>{displayTitle(spotlight.game.name)}</h3>
+            <Platforms name={spotlight.game.name} className="deal-platforms" />
             <div className="deal-vibe">
               <Sparkles size={14} />
               <DealVibe title={spotlight.game.name} fallback={spotlight.vibe} />
@@ -141,11 +156,12 @@ function DealCard({
       style={{ animationDelay: `${0.05 + index * 0.06}s` }}
     >
       <div className="deal-thumb">
-        <span className="off">−{Math.round(deal.discount * 100)}%</span>
+        <span className="discount-badge off">−{Math.round(deal.discount * 100)}%</span>
         <CoverImage title={deal.game.name} cover={deal.cover} />
       </div>
       <div className="deal-info">
-        <h4>{deal.game.name}</h4>
+        <h4>{displayTitle(deal.game.name)}</h4>
+        <Platforms name={deal.game.name} />
         <div className="vibe">
           <DealVibe title={deal.game.name} fallback={deal.vibe} />
         </div>
