@@ -8,6 +8,7 @@ import Collections from "./components/Collections";
 import Deals from "./components/Deals";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
+import HowToOrder from "./components/HowToOrder";
 import Marquee from "./components/Marquee";
 import Navbar from "./components/Navbar";
 import Slider from "./components/Slider";
@@ -148,6 +149,8 @@ export default function App() {
         ) : (
           <Subscriptions cartIds={cartIds} addToCart={addToCart} openCart={openCart} />
         )}
+
+        <HowToOrder />
       </div>
 
       <div className="shell">
