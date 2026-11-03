@@ -64,8 +64,19 @@ const DEAL_BUMP_MAX = 1500;
 const EMOJI_RE =
   /[\u{1F000}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}]/gu;
 
+/**
+ * Приведение к виду для поиска: регистр, ё→е, без эмодзи и знаков ™ ® ©,
+ * апострофы склеиваются, остальная пунктуация (: - , . и т.д.) становится пробелом.
+ * Благодаря этому «Call of Duty®» находит «Call of Duty: Modern Warfare 4».
+ */
 export const normalize = (s: string) =>
-  s.toLowerCase().replace(/ё/g, "е").replace(EMOJI_RE, "").replace(/\s+/g, " ").trim();
+  s
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(EMOJI_RE, "")
+    .replace(/[™®©'’`]/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
 
 export function parsePrice(raw: string): number {
   const digits = raw.replace(/[^\d]/g, "");
