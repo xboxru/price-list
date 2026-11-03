@@ -13,7 +13,7 @@ import {
   ShoppingCart,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Game, TG_PM, normalize } from "../lib/games";
 
 const CHUNK = 60;
@@ -104,7 +104,6 @@ export default function Catalog({ games, loading, cartIds, addToCart, openCart }
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortMode>("none");
   const [visible, setVisible] = useState(CHUNK);
-  const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -125,17 +124,6 @@ export default function Catalog({ games, loading, cartIds, addToCart, openCart }
   }, [games, query, sort]);
 
   useEffect(() => { setVisible(CHUNK); }, [query, sort, games.length]);
-
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      (entries) => { if (entries[0].isIntersecting) setVisible((v) => Math.min(v + CHUNK, filtered.length)); },
-      { rootMargin: "900px 0px" }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [filtered.length]);
 
   const chunks = useMemo(() => {
     const out: Game[][] = [];
@@ -311,11 +299,20 @@ export default function Catalog({ games, loading, cartIds, addToCart, openCart }
       )}
 
       {!loading && filtered.length > 0 && (
-        <div ref={sentinelRef}>
+        <div className="list-more">
           {shown < filtered.length ? (
-            <div className="sentinel-note">
-              Показано {shown.toLocaleString("ru-RU")} из {filtered.length.toLocaleString("ru-RU")} — листайте дальше…
-            </div>
+            <>
+              <div className="sentinel-note">
+                Показано {shown.toLocaleString("ru-RU")} из {filtered.length.toLocaleString("ru-RU")}
+              </div>
+              <button
+                className="more-btn"
+                onClick={() => setVisible((v) => Math.min(v + CHUNK, filtered.length))}
+              >
+                Показать ещё {Math.min(CHUNK, filtered.length - shown)}
+                <ChevronDown size={16} />
+              </button>
+            </>
           ) : (
             <>
               <div className="sentinel-note">

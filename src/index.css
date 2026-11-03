@@ -2936,3 +2936,34 @@ img {
   .howto-steps { grid-template-columns: 1fr; }
   .howto { margin-top: 40px; }
 }
+
+/* ============================================================
+   «ПОКАЗАТЬ ЕЩЁ» вместо бесконечной прокрутки + кнопка «Вниз»
+   ============================================================ */
+.list-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0 6px;
+}
+.list-more .sentinel-note { padding: 14px 0 0; }
+.more-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 26px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line-strong);
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+.more-btn:hover {
+  color: var(--accent);
+  border-color: rgba(0, 255, 157, 0.45);
+  background: var(--accent-soft);
+}
+.scroll-down { bottom: 80px; }
