@@ -2471,28 +2471,6 @@ img {
 .toast svg { color: var(--accent); flex-shrink: 0; }
 .toast span { overflow: hidden; text-overflow: ellipsis; }
 
-.scroll-top {
-  position: fixed;
-  right: 22px;
-  bottom: 24px;
-  z-index: 80;
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  background: var(--panel-2);
-  border: 1px solid var(--line-strong);
-  color: var(--muted);
-  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.8);
-  transition: all 0.25s;
-}
-.scroll-top:hover {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #04120c;
-  transform: translateY(-3px);
-}
 
 /* ============================================================
    ORDER MINI-BUTTON
@@ -2965,4 +2943,28 @@ img {
   color: var(--accent);
   border-color: rgba(0, 255, 157, 0.45);
   background: var(--accent-soft);
+}
+
+/* кнопка «Наверх» */
+.scroll-top {
+  position: fixed;
+  right: 22px;
+  bottom: 24px;
+  z-index: 80;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: var(--panel-2);
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.8);
+  transition: all 0.25s;
+}
+.scroll-top:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #04120c;
+  transform: translateY(-3px);
 }
