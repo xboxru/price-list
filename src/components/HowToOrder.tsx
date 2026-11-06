@@ -64,7 +64,7 @@ export default function HowToOrder() {
         ))}
       </div>
 
-      <div className="faq">
+      <div className="faq" id="faq">
         <h3 className="faq-title">Частые вопросы</h3>
         {FAQ.map((item) => (
           <details className="faq-item" key={item.question}>

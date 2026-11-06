@@ -8,15 +8,6 @@ export default function Header({ total }: { total: number }) {
   return (
     <header className="hero">
       <motion.div
-        className="hero-logo"
-        initial={{ opacity: 0, scale: 0.6, y: 18 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.8, ease }}
-      >
-        <img src="./hero-logo.png" alt="XP Box — Xbox Россия" />
-      </motion.div>
-
-      <motion.div
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, delay: 0.1, ease }}

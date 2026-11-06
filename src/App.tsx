@@ -11,11 +11,19 @@ import Header from "./components/Header";
 import HowToOrder from "./components/HowToOrder";
 import Marquee from "./components/Marquee";
 import Navbar from "./components/Navbar";
+import SiteHeader from "./components/SiteHeader";
 import Slider from "./components/Slider";
 import Subscriptions from "./components/Subscriptions";
 import { ScrollTop, Toast } from "./components/Overlays";
 import { useCopyToast } from "./hooks/useCopyToast";
-import { Deal, Game, fallbackGames, fetchGames, resolveDeals } from "./lib/games";
+import { Deal, Game, fallbackGames, fetchGames, parsePrice, resolveDeals } from "./lib/games";
+
+/**
+ * Вид шапки:
+ *  "two-tier" — двухъярусная: справочная строка, поиск/корзина/связь, меню разделов
+ *  "classic"  — прежняя: верхняя панель, большой блок с заголовком и вкладки под слайдером
+ */
+const HEADER_STYLE: "two-tier" | "classic" = "two-tier";
 
 export default function App() {
   const [games, setGames] = useState<Game[]>([]);
@@ -74,6 +82,8 @@ export default function App() {
     setCartOpenSignal(0);
   }, []);
 
+  const cartTotal = useMemo(() => cart.reduce((sum, i) => sum + parsePrice(i.price), 0), [cart]);
+
   const openCart = useCallback(() => {
     setCartOpenSignal((n) => n + 1);
   }, []);
@@ -94,13 +104,26 @@ export default function App() {
     <MotionConfig reducedMotion="user">
       <div className="app-wrapper">
         <Background />
-        <Navbar currentPage={page} setPage={setPage} onSearch={openSearch} />
+        {HEADER_STYLE === "classic" && <Navbar currentPage={page} setPage={setPage} onSearch={openSearch} />}
 
-        <div className="shell" style={{ paddingTop: "60px" }}>
-          <Header total={games.length} />
+        <div className="shell" style={{ paddingTop: HEADER_STYLE === "classic" ? "60px" : "0" }}>
+          {HEADER_STYLE === "two-tier" ? (
+            <SiteHeader
+              page={page}
+              setPage={setPage}
+              onSearch={openSearch}
+              total={games.length}
+              cartCount={cart.length}
+              cartTotal={cartTotal}
+              openCart={openCart}
+            />
+          ) : (
+            <Header total={games.length} />
+          )}
 
           <Slider games={games} cartIds={cartIds} addToCart={addToCart} openCart={openCart} />
 
+        {HEADER_STYLE === "classic" && (
         <div className="nav-tabs">
           <button
             className={`nav-tab ${page === "games" ? "active" : ""}`}
@@ -121,6 +144,7 @@ export default function App() {
             Подписки
           </button>
         </div>
+        )}
 
         {page === "games" ? (
           <>
