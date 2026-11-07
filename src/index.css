@@ -3120,6 +3120,7 @@ img {
 }
 .hdr-contact-pop .contact-help-grid { margin-top: 0; }
 
+/* Меню разделов над слайдером (как в присланной версии), липкое при прокрутке */
 .hdr-nav {
   position: sticky;
   top: 0;
@@ -3163,14 +3164,37 @@ img {
   border-radius: 2px;
   background: var(--accent);
 }
-.hdr-nav ~ .slider { margin-top: 20px; }
+/* небольшой отступ между меню и слайдером */
+.hdr-nav ~ .slider { margin-top: 12px; }
+
+/* иконка поиска и бургер: только на телефоне */
+.hdr-search-icon { display: none; }
+.hdr-burger { display: none; }
+a.menu-link { text-decoration: none; }
 
 @media (max-width: 900px) {
   .hdr-top { display: none; }
-  .hdr-main { flex-wrap: wrap; gap: 12px; padding: 14px 0 12px; }
+  /* компактная липкая панель: логотип, поиск, корзина, бургер; всё остальное внутри бургер-меню */
+  .hdr-main {
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    gap: 12px;
+    margin: 0 calc(-1 * clamp(16px, 4vw, 32px));
+    padding: 10px clamp(16px, 4vw, 32px);
+    background: rgba(7, 7, 12, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .hdr-brand img { width: 40px; height: 40px; }
   .hdr-brand-text span { display: none; }
-  .hdr-search { order: 3; flex: 1 1 100%; max-width: none; min-width: 0; }
-  .hdr-actions { margin-left: auto; }
+  .hdr-search { display: none; }
+  .hdr-contact { display: none; }
+  .hdr-nav { display: none; }
+  .hdr-search-icon { display: grid; flex: 0 0 auto; }
+  .hdr-burger { display: grid; flex: 0 0 auto; }
+  .hdr-actions { margin-left: auto; gap: 8px; }
 }
 @media (max-width: 520px) {
   .hdr-btn { padding: 0 14px; }

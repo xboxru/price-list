@@ -9,7 +9,7 @@ interface NavbarProps {
   onSearch: (query: string) => void;
 }
 
-function MenuContact() {
+export function MenuContact() {
   const [open, setOpen] = useState(false);
 
   return (

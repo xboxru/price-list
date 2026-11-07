@@ -1,7 +1,21 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Search, Send, ShoppingCart } from "lucide-react";
+import {
+  ChevronDown,
+  Flame,
+  Gamepad2,
+  HelpCircle,
+  Layers3,
+  LayoutGrid,
+  Menu,
+  Search,
+  Send,
+  ShoppingCart,
+  X,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { TG_CHANNEL, TG_PM } from "../lib/games";
+import { MenuContact } from "./Navbar";
 
 type Page = "games" | "subs" | "collections";
 
@@ -105,10 +119,27 @@ export default function SiteHeader({
   const [query, setQuery] = useState("");
   const submit = () => onSearch(query.trim());
 
+  // Бургер-меню на телефоне: все разделы и связь внутри него, чтобы шапка не занимала место
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Поиск на телефоне: иконка открывает панель, которая выезжает слева
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [mobileQuery, setMobileQuery] = useState("");
+  const submitMobile = () => {
+    onSearch(mobileQuery.trim());
+    setSearchOpen(false);
+  };
+
   // Переход в раздел страницы и прокрутка к блоку внутри него
   const goPage = (p: Page, anchor?: string) => {
     setPage(p);
     window.setTimeout(() => (anchor ? scrollToId(anchor) : window.scrollTo({ top: 0, behavior: "smooth" })), 80);
+  };
+
+  // Пункт бургер-меню: закрыть меню и выполнить действие
+  const fromMenu = (fn: () => void) => () => {
+    setMenuOpen(false);
+    window.setTimeout(fn, 150);
   };
 
   const tabs: { label: string; active: boolean; onClick: () => void }[] = [
@@ -170,6 +201,16 @@ export default function SiteHeader({
         </div>
 
         <div className="hdr-actions">
+          <button
+            className="nav-search-btn hdr-search-icon"
+            onClick={() => {
+              setMenuOpen(false);
+              setSearchOpen(true);
+            }}
+            aria-label="Поиск"
+          >
+            <Search size={20} />
+          </button>
           <button className="hdr-btn hdr-btn-ghost" onClick={openCart} aria-label="Открыть корзину">
             <ShoppingCart size={18} />
             <span className="hdr-cart-label">
@@ -178,6 +219,17 @@ export default function SiteHeader({
             {cartCount > 0 && <span className="hdr-cart-count">{cartCount}</span>}
           </button>
           <ContactPopover />
+          <button
+            className="burger-btn hdr-burger"
+            onClick={() => {
+              setSearchOpen(false);
+              setMenuOpen((v) => !v);
+            }}
+            aria-label="Меню"
+            aria-expanded={menuOpen}
+          >
+            <Menu size={22} />
+          </button>
         </div>
       </div>
 
@@ -194,6 +246,145 @@ export default function SiteHeader({
           </button>
         ))}
       </nav>
+
+      {/* Панель поиска для телефона: выезжает слева (выносим в <body>, чтобы была поверх остальных кнопок) */}
+      {createPortal(
+        <AnimatePresence>
+          {searchOpen && (
+            <>
+              <motion.div
+                key="search-overlay"
+                className="search-overlay"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => setSearchOpen(false)}
+              />
+              <motion.div
+                key="search-panel"
+                className="nav-search-panel"
+                role="search"
+                initial={{ x: "-100%", opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: "-100%", opacity: 0 }}
+                transition={{ type: "spring", damping: 28, stiffness: 260 }}
+              >
+                <div className="nav-search-inner">
+                  <Search size={18} className="nav-search-icon" />
+                  <input
+                    className="nav-search-input"
+                    type="search"
+                    enterKeyHint="search"
+                    autoComplete="off"
+                    placeholder="Поиск игры…"
+                    value={mobileQuery}
+                    onChange={(e) => setMobileQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") submitMobile();
+                      if (e.key === "Escape") setSearchOpen(false);
+                    }}
+                    autoFocus
+                  />
+                  <button className="nav-search-go" onClick={submitMobile}>
+                    Найти
+                  </button>
+                  <button
+                    className="nav-search-close"
+                    onClick={() => setSearchOpen(false)}
+                    aria-label="Закрыть поиск"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* Бургер-меню (телефон): выезжает справа, как в прежней версии */}
+      {createPortal(
+        <AnimatePresence>
+          {menuOpen && (
+            <>
+              <motion.div
+                key="menu-overlay"
+                className="menu-overlay"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setMenuOpen(false)}
+              />
+              <motion.div
+                key="menu-panel"
+                className="mobile-menu"
+                initial={{ opacity: 0, x: "100%" }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              >
+                <div className="menu-header">
+                  <h3>Навигация</h3>
+                  <button onClick={() => setMenuOpen(false)} aria-label="Закрыть меню">
+                    <X size={24} />
+                  </button>
+                </div>
+
+                <div className="menu-sections">
+                  <div className="menu-group">
+                    <span className="group-label">Разделы</span>
+                    <button className={`menu-link ${page === "games" ? "active" : ""}`} onClick={fromMenu(() => goPage("games"))}>
+                      <Gamepad2 size={20} />
+                      Игры Xbox
+                    </button>
+                    <button className={`menu-link ${page === "collections" ? "active" : ""}`} onClick={fromMenu(() => goPage("collections"))}>
+                      <LayoutGrid size={20} />
+                      Подборки
+                    </button>
+                    <button className="menu-link" onClick={fromMenu(() => goPage("games", "deals"))}>
+                      <Flame size={20} />
+                      Скидки недели
+                    </button>
+                    <button className={`menu-link ${page === "subs" ? "active" : ""}`} onClick={fromMenu(() => goPage("subs"))}>
+                      <Layers3 size={20} />
+                      Подписки
+                    </button>
+                  </div>
+
+                  <div className="menu-group">
+                    <span className="group-label">Информация</span>
+                    <button className="menu-link" onClick={fromMenu(() => scrollToId("howto"))}>
+                      <HelpCircle size={20} />
+                      Как заказать
+                    </button>
+                    <button className="menu-link" onClick={fromMenu(() => scrollToId("faq"))}>
+                      <HelpCircle size={20} />
+                      Частые вопросы
+                    </button>
+                    <a className="menu-link" href={TG_CHANNEL} target="_blank" rel="noreferrer">
+                      <Send size={20} />
+                      Telegram-канал
+                    </a>
+                  </div>
+
+                  <div className="menu-group">
+                    <span className="group-label">Связаться с нами</span>
+                    <MenuContact />
+                  </div>
+                </div>
+
+                <div className="menu-footer">
+                  <p>XP Box · Xbox Россия</p>
+                  <p className="sub">Цены обновляются автоматически · ежедневно 11:00–23:00 мск</p>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </header>
   );
 }
