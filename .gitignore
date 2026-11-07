@@ -8,3 +8,6 @@ node_modules
 
 /.covers-cache
 /public/game-covers
+
+# локальный портативный Node для запуска дев-сервера
+.tools/

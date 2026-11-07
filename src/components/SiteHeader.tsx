@@ -6,9 +6,11 @@ import {
   HelpCircle,
   Layers3,
   LayoutGrid,
+  List,
   Menu,
   Search,
   Send,
+  ShoppingBag,
   ShoppingCart,
   X,
 } from "lucide-react";
@@ -27,6 +29,9 @@ interface SiteHeaderProps {
   cartCount: number;
   cartTotal: number;
   openCart: () => void;
+  /** Вид карточек на телефоне: список в один столбец или плитка в два */
+  view: "list" | "grid";
+  onToggleView: () => void;
 }
 
 /** Плавная прокрутка к блоку на странице */
@@ -115,6 +120,8 @@ export default function SiteHeader({
   cartCount,
   cartTotal,
   openCart,
+  view,
+  onToggleView,
 }: SiteHeaderProps) {
   const [query, setQuery] = useState("");
   const submit = () => onSearch(query.trim());
@@ -142,12 +149,12 @@ export default function SiteHeader({
     window.setTimeout(fn, 150);
   };
 
-  const tabs: { label: string; active: boolean; onClick: () => void }[] = [
-    { label: "Игры Xbox", active: page === "games", onClick: () => goPage("games") },
-    { label: "Подборки", active: page === "collections", onClick: () => goPage("collections") },
-    { label: "Скидки недели", active: false, onClick: () => goPage("games", "deals") },
-    { label: "Подписки", active: page === "subs", onClick: () => goPage("subs") },
-    { label: "Как заказать", active: false, onClick: () => scrollToId("howto") },
+  const tabs: { label: string; icon: typeof Gamepad2; active: boolean; onClick: () => void }[] = [
+    { label: "Игры Xbox", icon: Gamepad2, active: page === "games", onClick: () => goPage("games") },
+    { label: "Подборки", icon: LayoutGrid, active: page === "collections", onClick: () => goPage("collections") },
+    { label: "Скидки недели", icon: Flame, active: false, onClick: () => goPage("games", "deals") },
+    { label: "Подписки", icon: Layers3, active: page === "subs", onClick: () => goPage("subs") },
+    { label: "Как заказать", icon: HelpCircle, active: false, onClick: () => scrollToId("howto") },
   ];
 
   return (
@@ -164,9 +171,18 @@ export default function SiteHeader({
           </span>
         </div>
         <div className="hdr-top-links">
-          <a href={TG_CHANNEL} target="_blank" rel="noreferrer">Telegram-канал</a>
-          <a href="#howto" onClick={(e) => { e.preventDefault(); scrollToId("howto"); }}>Как заказать</a>
-          <a href="#faq" onClick={(e) => { e.preventDefault(); scrollToId("faq"); }}>Частые вопросы</a>
+          <a href={TG_CHANNEL} target="_blank" rel="noreferrer">
+            <Send size={13} className="hdr-top-icon" aria-hidden />
+            Telegram-канал
+          </a>
+          <a href="#howto" onClick={(e) => { e.preventDefault(); scrollToId("howto"); }}>
+            <ShoppingBag size={13} className="hdr-top-icon" aria-hidden />
+            Как заказать
+          </a>
+          <a href="#faq" onClick={(e) => { e.preventDefault(); scrollToId("faq"); }}>
+            <HelpCircle size={13} className="hdr-top-icon" aria-hidden />
+            Частые вопросы
+          </a>
         </div>
       </div>
 
@@ -201,6 +217,16 @@ export default function SiteHeader({
         </div>
 
         <div className="hdr-actions">
+          {/* телефон: выбор вида — один столбец или плитка в два */}
+          <button
+            className="nav-search-btn hdr-view"
+            onClick={onToggleView}
+            aria-pressed={view === "grid"}
+            aria-label={view === "grid" ? "Показывать по одному в ряд" : "Показывать по два в ряд"}
+            title={view === "grid" ? "Один в ряд" : "Два в ряд"}
+          >
+            {view === "grid" ? <List size={20} /> : <LayoutGrid size={20} />}
+          </button>
           <button
             className="nav-search-btn hdr-search-icon"
             onClick={() => {
@@ -242,7 +268,8 @@ export default function SiteHeader({
             aria-current={t.active ? "page" : undefined}
             onClick={t.onClick}
           >
-            {t.label}
+            <t.icon className="hdr-tab-icon" size={15} strokeWidth={2.1} aria-hidden />
+            <span>{t.label}</span>
           </button>
         ))}
       </nav>

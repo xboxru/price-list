@@ -32,6 +32,25 @@ export default function App() {
   const [page, setPage] = useState<"games" | "subs" | "collections">("games");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpenSignal, setCartOpenSignal] = useState(0);
+  // Вид карточек на телефоне: «list» — один в ряд, «grid» — плитка в два столбца.
+  // Выбор запоминается, чтобы не переключать при каждом входе.
+  const [view, setView] = useState<"list" | "grid">(() => {
+    try {
+      return localStorage.getItem("xpbox:view") === "grid" ? "grid" : "list";
+    } catch {
+      return "list";
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("xpbox:view", view);
+    } catch {
+      /* приватный режим: просто не запоминаем */
+    }
+  }, [view]);
+
+  const toggleView = useCallback(() => setView((v) => (v === "grid" ? "list" : "grid")), []);
   const { toast, copy: rawCopy } = useCopyToast();
 
   const copy = useCallback(
@@ -102,7 +121,7 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="app-wrapper">
+      <div className={`app-wrapper ${view === "grid" ? "view-grid" : ""}`}>
         <Background />
         {HEADER_STYLE === "classic" && <Navbar currentPage={page} setPage={setPage} onSearch={openSearch} />}
 
@@ -116,6 +135,8 @@ export default function App() {
               cartCount={cart.length}
               cartTotal={cartTotal}
               openCart={openCart}
+              view={view}
+              onToggleView={toggleView}
             />
           ) : (
             <Header total={games.length} />
@@ -166,7 +187,7 @@ export default function App() {
 
             <Marquee />
 
-            <Catalog games={games} loading={loading} cartIds={cartIds} addToCart={addToCart} openCart={openCart} />
+            <Catalog games={games} loading={loading} cartIds={cartIds} addToCart={addToCart} removeFromCart={removeFromCart} openCart={openCart} />
           </>
         ) : page === "collections" ? (
           <Collections games={games} cartIds={cartIds} addToCart={addToCart} openCart={openCart} />

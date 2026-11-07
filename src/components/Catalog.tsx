@@ -26,6 +26,7 @@ interface CatalogProps {
   loading: boolean;
   cartIds: Set<string>;
   addToCart: (id: string, name: string, price: string) => void;
+  removeFromCart: (id: string) => void;
   openCart: () => void;
 }
 
@@ -100,7 +101,7 @@ function ContactDropdown() {
   );
 }
 
-export default function Catalog({ games, loading, cartIds, addToCart, openCart }: CatalogProps) {
+export default function Catalog({ games, loading, cartIds, addToCart, removeFromCart, openCart }: CatalogProps) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortMode>("none");
   const [visible, setVisible] = useState(CHUNK);
@@ -132,9 +133,12 @@ export default function Catalog({ games, loading, cartIds, addToCart, openCart }
     return out;
   }, [filtered, visible]);
 
+  // повторное нажатие по позиции снимает её из корзины
   const handleToggleCart = (g: Game, e: React.MouseEvent) => {
     e.stopPropagation();
-    addToCart(`game-${g.id}`, g.name, g.price);
+    const id = `game-${g.id}`;
+    if (cartIds.has(id)) removeFromCart(id);
+    else addToCart(id, g.name, g.price);
   };
 
   const cycleSort = () => setSort((s) => (s === "none" ? "asc" : s === "asc" ? "desc" : "none"));

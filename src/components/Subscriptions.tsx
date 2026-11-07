@@ -93,7 +93,7 @@ function SubCard({ plan, index, accent = "green", inCart = false, priceReady = t
         {plan.features.map((f, i) => (
           <li key={i}>
             <Check size={16} />
-            {f}
+            <span>{f}</span>
           </li>
         ))}
       </ul>

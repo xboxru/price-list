@@ -2611,6 +2611,7 @@ img {
 /* ============================================================
    СЛАЙДЕР (топовые игры и новинки)
    ============================================================ */
+/* ── Слайдер ── */
 .slider {
   position: relative;
   margin: 0 0 24px;
@@ -2621,6 +2622,16 @@ img {
   overflow: hidden;
   touch-action: pan-y;
 }
+
+/* бейджи платформ в слайдере: четче, чтобы читались на небоскробах */
+.slide-genres .store-platforms,
+.slide-genres .store-platform {
+  background: rgba(0, 0, 0, 0.35) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: #e8e8ed !important;
+}
+
+/* ── Конец слайдера ── */
 .slide {
   position: absolute;
   inset: 0;
@@ -3143,7 +3154,10 @@ img {
 .hdr-tab {
   position: relative;
   flex: 0 0 auto;
-  padding: 15px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 15px 14px;
   background: none;
   border: 0;
   white-space: nowrap;
@@ -3152,13 +3166,21 @@ img {
   color: var(--muted);
   transition: color 0.2s;
 }
+/* маленькая иконка перед названием раздела */
+.hdr-tab-icon {
+  flex: 0 0 auto;
+  opacity: 0.7;
+  transition: opacity 0.2s, transform 0.2s;
+}
 .hdr-tab:hover { color: var(--text); }
+.hdr-tab:hover .hdr-tab-icon { opacity: 1; }
 .hdr-tab.active { color: var(--accent); font-weight: 700; }
+.hdr-tab.active .hdr-tab-icon { opacity: 1; transform: scale(1.06); }
 .hdr-tab.active::after {
   content: "";
   position: absolute;
-  left: 16px;
-  right: 16px;
+  left: 14px;
+  right: 14px;
   bottom: -1px;
   height: 2px;
   border-radius: 2px;
@@ -3202,3 +3224,181 @@ a.menu-link { text-decoration: none; }
   .hdr-cart-label { display: none; }
   .hdr-cart-count { margin-left: -4px; }
 }
+
+/* ============================================================
+   ВИД КОНТЕНТА НА ТЕЛЕФОНЕ
+   Переключатель в шапке добавляет .view-grid на .app-wrapper:
+   карточки становятся плиткой в два столбца вместо одного.
+   ============================================================ */
+
+/* кнопка переключения вида — только на телефоне, рядом с поиском */
+.hdr-view { display: none; }
+@media (max-width: 900px) {
+  .hdr-view { display: grid; flex: 0 0 auto; }
+}
+.hdr-view[aria-pressed="true"] { color: var(--accent); }
+
+/* ── каталог: строки превращаются в компактные плитки ── */
+@media (max-width: 720px) {
+  .view-grid .rows {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  /* обёртки чанков не должны мешать общей сетке */
+  .view-grid .rows > div { display: contents !important; }
+  .view-grid .list-head { display: none; }
+
+  .view-grid .row {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 98px;
+    padding: 10px 10px 10px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
+  }
+  .view-grid .row:hover { border-color: var(--line-strong); }
+
+  .view-grid .row-name {
+    font-size: 12.5px;
+    line-height: 1.32;
+    gap: 4px;
+    align-items: flex-start;
+  }
+  .view-grid .row-name-text {
+    flex: 1 1 100%;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .view-grid .row-price {
+    font-size: 13.5px;
+    text-align: left;
+    padding-right: 32px;
+  }
+  .view-grid .hot-badge { font-size: 8px; padding: 1px 5px; letter-spacing: 0.08em; }
+  .view-grid .row .cart-row-btn,
+  .view-grid .row .order-mini {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── подборки: карточки в два столбца ── */
+@media (max-width: 640px) {
+  .view-grid .store-cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  /* все правила строго внутри карточки: те же классы .store-platform(s)
+     используются в «Скидках недели», их менять нельзя */
+  .view-grid .store-card { border-radius: 16px; }
+  .view-grid .store-card .store-body { padding: 9px 9px 11px; gap: 7px; }
+  .view-grid .store-card .store-meta { font-size: 9px; letter-spacing: 0.1em; }
+  .view-grid .store-card .store-title { font-size: 12px; line-height: 1.3; }
+  .view-grid .store-card .store-platforms { gap: 4px; }
+  .view-grid .store-card .store-platform { font-size: 9px; padding: 3px 6px; }
+  .view-grid .store-card .store-price { font-size: 14px; }
+  .view-grid .store-card .store-discount { top: 7px; left: 7px; font-size: 9px; padding: 3px 7px; }
+  .view-grid .store-card .store-footer { gap: 6px; }
+  .view-grid .store-card .store-footer .cart-row-btn,
+  .view-grid .store-card .store-footer .order-mini { width: 28px; height: 28px; border-radius: 9px; }
+}
+
+/* ── подписки: карточки в два столбца ── */
+@media (max-width: 640px) {
+  .view-grid .subs-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .view-grid .sub-card { padding: 16px 10px 14px; border-radius: 14px; }
+  .view-grid .sub-header h3 { font-size: 13px; margin-bottom: 6px; }
+  .view-grid .sub-price-row { margin-bottom: 10px; }
+  .view-grid .sub-price { font-size: 17px; }
+  .view-grid .sub-desc { font-size: 10.5px; line-height: 1.35; }
+  .view-grid .sub-features { font-size: 10.5px; line-height: 1.3; }
+  .view-grid .sub-features svg { width: 12px; height: 12px; }
+  .view-grid .popular-badge { font-size: 8px; padding: 3px 7px; gap: 4px; }
+  .view-grid .popular-badge svg { width: 10px; height: 10px; }
+  .view-grid .subs-grid .btn { font-size: 11.5px; padding: 9px 8px; gap: 6px; }
+  .view-grid .subs-grid .btn svg { width: 13px; height: 13px; }
+}
+
+/* ============================================================
+   ПОДПИСКИ: ТЕКСТ ВНУТРИ КАРТОЧКИ
+   Длинные формулировки («Сетевая многопользовательская игра»)
+   раньше не переносились и вылезали за границы карточки.
+   ============================================================ */
+.subs-grid > * { min-width: 0; }
+.sub-card { min-width: 0; }
+
+.sub-features { min-width: 0; }
+.sub-features li {
+  min-width: 0;
+  align-items: flex-start;
+}
+.sub-features li svg { flex: 0 0 auto; margin-top: 1px; }
+.sub-features li span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.sub-desc { overflow-wrap: anywhere; }
+.sub-header h3 { overflow-wrap: anywhere; }
+
+/* компактная плитка: только на телефоне, десктопный размер текста не трогаем */
+@media (max-width: 640px) {
+  .view-grid .sub-features li { font-size: 10.5px; gap: 6px; }
+  .view-grid .sub-features li svg { width: 12px; height: 12px; margin-top: 1px; }
+  .view-grid .popular-badge {
+    max-width: calc(100% - 10px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* на очень узких экранах заголовок подписок лучше перенести, чем обрезать */
+@media (max-width: 380px) {
+  .subs-section .section-title { white-space: normal; }
+}
+
+/* ============================================================
+   ТЕЛЕФОН: ПАНЕЛЬ ПОИСКА КАТАЛОГА НЕ ЛИПНЕТ
+   Поиск уже есть в липкой шапке, поэтому панель над прайсом
+   при прокрутке должна уезжать вверх вместе с контентом.
+   ============================================================ */
+@media (max-width: 900px) {
+  .toolbar {
+    position: static;
+    top: auto;
+    z-index: auto;
+  }
+}
+
+/* ============================================================
+   ВЕРХНЯЯ СТРОКА: МИНИ-ИКОНКИ У ССЫЛОК
+   Telegram-канал · Как заказать · Частые вопросы
+   ============================================================ */
+.hdr-top-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.hdr-top-icon {
+  flex: 0 0 auto;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+.hdr-top-links a:hover .hdr-top-icon { opacity: 1; }
