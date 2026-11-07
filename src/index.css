@@ -3402,3 +3402,19 @@ a.menu-link { text-decoration: none; }
   transition: opacity 0.2s;
 }
 .hdr-top-links a:hover .hdr-top-icon { opacity: 1; }
+
+/* ============================================================
+   ВЕРХНЯЯ СТРОКА ВСЕГДА В ОДНУ ЛИНИЮ
+   В режиме «Версия для ПК» телефон рисует страницу шириной около 980px,
+   и строка с иконками у ссылок переставала помещаться и ломалась на две строки.
+   ============================================================ */
+.hdr-top { flex-wrap: nowrap; gap: 16px; }
+.hdr-top-left { flex-wrap: nowrap; min-width: 0; gap: 22px; }
+.hdr-live { flex: 0 0 auto; white-space: nowrap; }
+.hdr-top-note { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hdr-top-links { flex: 0 0 auto; white-space: nowrap; }
+.hdr-top-links a { white-space: nowrap; }
+@media (max-width: 1100px) {
+  .hdr-top-note { display: none; }
+  .hdr-top-links { gap: 16px; }
+}
