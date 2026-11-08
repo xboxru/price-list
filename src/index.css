@@ -3186,8 +3186,8 @@ img {
   border-radius: 2px;
   background: var(--accent);
 }
-/* небольшой отступ между меню и слайдером */
-.hdr-nav ~ .slider { margin-top: 12px; }
+/* отступ между шапкой и слайдером (.hdr и .slider стоят рядом внутри .shell) */
+.hdr ~ .slider { margin-top: 12px; }
 
 /* иконка поиска и бургер: только на телефоне */
 .hdr-search-icon { display: none; }
@@ -3195,6 +3195,7 @@ img {
 a.menu-link { text-decoration: none; }
 
 @media (max-width: 900px) {
+  .hdr ~ .slider { margin-top: 14px; }
   .hdr-top { display: none; }
   /* компактная липкая панель: логотип, поиск, корзина, бургер; всё остальное внутри бургер-меню */
   .hdr-main {
