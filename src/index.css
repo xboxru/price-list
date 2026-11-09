@@ -3441,3 +3441,12 @@ a.menu-link { text-decoration: none; }
   background: rgba(255, 255, 255, 0.2);
   color: var(--text);
 }
+
+/* Бейджи платформ в главном баннере «Скидки недели» — темнее, чтобы лучше читались на картинке */
+.deal-platforms .store-platform {
+  background: rgba(8, 8, 14, 0.62);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #e8eaf4;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
