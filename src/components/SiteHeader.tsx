@@ -125,6 +125,17 @@ export default function SiteHeader({
 }: SiteHeaderProps) {
   const [query, setQuery] = useState("");
   const submit = () => onSearch(query.trim());
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  /** Сбрасываем фильтр каталога, не прокручивая страницу */
+  const resetCatalogSearch = () =>
+    window.dispatchEvent(new CustomEvent("catalog-search", { detail: "" }));
+
+  const clearQuery = () => {
+    setQuery("");
+    resetCatalogSearch();
+    searchInputRef.current?.focus();
+  };
 
   // Бургер-меню на телефоне: все разделы и связь внутри него, чтобы шапка не занимала место
   const [menuOpen, setMenuOpen] = useState(false);
@@ -132,6 +143,12 @@ export default function SiteHeader({
   // Поиск на телефоне: иконка открывает панель, которая выезжает слева
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileQuery, setMobileQuery] = useState("");
+  const mobileInputRef = useRef<HTMLInputElement>(null);
+  const clearMobileQuery = () => {
+    setMobileQuery("");
+    resetCatalogSearch();
+    mobileInputRef.current?.focus();
+  };
   const submitMobile = () => {
     onSearch(mobileQuery.trim());
     setSearchOpen(false);
@@ -210,9 +227,15 @@ export default function SiteHeader({
             placeholder="Найти игру или подписку…"
             aria-label="Поиск по прайсу"
             value={query}
+            ref={searchInputRef}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submit()}
           />
+          {query && (
+            <button type="button" className="hdr-clear" onClick={clearQuery} aria-label="Очистить поиск">
+              <X size={14} />
+            </button>
+          )}
           <button className="hdr-search-go" onClick={submit}>Найти</button>
         </div>
 
@@ -306,6 +329,7 @@ export default function SiteHeader({
                     autoComplete="off"
                     placeholder="Поиск игры…"
                     value={mobileQuery}
+                    ref={mobileInputRef}
                     onChange={(e) => setMobileQuery(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") submitMobile();
@@ -313,6 +337,11 @@ export default function SiteHeader({
                     }}
                     autoFocus
                   />
+                  {mobileQuery && (
+                    <button type="button" className="hdr-clear" onClick={clearMobileQuery} aria-label="Очистить поиск">
+                      <X size={14} />
+                    </button>
+                  )}
                   <button className="nav-search-go" onClick={submitMobile}>
                     Найти
                   </button>

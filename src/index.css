@@ -3419,3 +3419,25 @@ a.menu-link { text-decoration: none; }
   .hdr-top-note { display: none; }
   .hdr-top-links { gap: 16px; }
 }
+
+/* ============================================================
+   КРЕСТИК «ОЧИСТИТЬ» В СТРОКАХ ПОИСКА (шапка и панель на телефоне)
+   ============================================================ */
+.hdr-clear {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.hdr-clear:hover,
+.hdr-clear:focus-visible {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--text);
+}
