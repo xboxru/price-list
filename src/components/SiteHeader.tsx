@@ -137,6 +137,15 @@ export default function SiteHeader({
     searchInputRef.current?.focus();
   };
 
+  // Прокрутка: на десктопе шапка липкая, поэтому при скролле прячем инфо-строку
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   // Бургер-меню на телефоне: все разделы и связь внутри него, чтобы шапка не занимала место
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -175,7 +184,7 @@ export default function SiteHeader({
   ];
 
   return (
-    <header className="hdr">
+    <header className={`hdr ${scrolled ? "scrolled" : ""}`}>
       {/* Верхний ярус: справочная информация */}
       <div className="hdr-top">
         <div className="hdr-top-left">
