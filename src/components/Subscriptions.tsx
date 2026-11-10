@@ -153,7 +153,7 @@ export default function Subscriptions({
     `${p.name} · ${p.duration}${p.region ? ` · ${REGION_LABELS[p.region]}` : ""}`;
 
   return (
-    <section className="subs-section">
+    <section className="subs-section" id="subs">
       {/* ── Подписки на свой аккаунт ── */}
       <div className="section-head">
         <div>

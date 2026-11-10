@@ -138,13 +138,6 @@ export default function SiteHeader({
   };
 
   // Прокрутка: на десктопе шапка липкая, поэтому при скролле прячем инфо-строку
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   // Бургер-меню на телефоне: все разделы и связь внутри него, чтобы шапка не занимала место
   const [menuOpen, setMenuOpen] = useState(false);
@@ -166,7 +159,12 @@ export default function SiteHeader({
   // Переход в раздел страницы и прокрутка к блоку внутри него
   const goPage = (p: Page, anchor?: string) => {
     setPage(p);
-    window.setTimeout(() => (anchor ? scrollToId(anchor) : window.scrollTo({ top: 0, behavior: "smooth" })), 80);
+    // «Подборки» и «Подписки» прокручивают к заголовку раздела, «Игры Xbox» — к началу страницы
+    const target = anchor ?? (p === "collections" ? "collections" : p === "subs" ? "subs" : undefined);
+    window.setTimeout(
+      () => (target ? scrollToId(target) : window.scrollTo({ top: 0, behavior: "smooth" })),
+      80
+    );
   };
 
   // Пункт бургер-меню: закрыть меню и выполнить действие
@@ -184,7 +182,7 @@ export default function SiteHeader({
   ];
 
   return (
-    <header className={`hdr ${scrolled ? "scrolled" : ""}`}>
+    <header className="hdr">
       {/* Верхний ярус: справочная информация */}
       <div className="hdr-top">
         <div className="hdr-top-left">

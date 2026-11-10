@@ -3458,9 +3458,12 @@ a.menu-link { text-decoration: none; }
    ============================================================ */
 @media (min-width: 901px) {
   .hdr {
+    --hdr-top-h: 44px; /* высота верхней информационной строки */
     display: block;
     position: sticky;
-    top: 0;
+    /* липнем с отрицательным отступом: верхняя строка просто уезжает за край экрана,
+       а высота шапки не меняется (раньше JS сворачивал строку, страница сдвигалась и шапка дёргалась) */
+    top: calc(-1 * var(--hdr-top-h));
     z-index: 70;
     isolation: isolate;
     margin-top: 12px;
@@ -3475,18 +3478,15 @@ a.menu-link { text-decoration: none; }
   }
 
   .hdr-top {
-    padding: 10px clamp(16px, 2vw, 22px);
-    max-height: 64px;
+    box-sizing: border-box;
+    height: var(--hdr-top-h);
+    align-items: center;
+    padding: 0 clamp(16px, 2vw, 22px);
     overflow: hidden;
     border: 1px solid var(--line-strong);
     border-bottom: 1px solid var(--line);
     border-radius: 18px 18px 0 0;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    transition:
-      max-height 0.34s ease,
-      opacity 0.22s ease,
-      padding 0.34s ease,
-      border-width 0.34s ease;
   }
   /* backdrop-filter создаёт контекст наложения, поэтому строка с кнопками
      должна рисоваться выше меню — иначе поповер «Связаться с нами» уходит под него */
@@ -3496,7 +3496,6 @@ a.menu-link { text-decoration: none; }
     padding: 16px clamp(16px, 2vw, 22px);
     border-left: 1px solid var(--line-strong);
     border-right: 1px solid var(--line-strong);
-    transition: padding 0.34s ease;
   }
   .hdr-nav {
     position: static;
@@ -3508,23 +3507,29 @@ a.menu-link { text-decoration: none; }
     box-shadow: 0 26px 50px -30px rgba(0, 0, 0, 0.95);
   }
 
-  /* при прокрутке информационная строка уезжает, шапка становится компактнее */
-  .hdr.scrolled .hdr-top {
-    max-height: 0;
-    opacity: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-    border-bottom-width: 0;
-  }
-  .hdr.scrolled .hdr-main {
-    padding-top: 12px;
-    padding-bottom: 12px;
-  }
 }
 
 /* без поддержки backdrop-filter — плотный фон исходного оттенка */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   @media (min-width: 901px) {
     .hdr-top, .hdr-main, .hdr-nav { background: rgba(7, 7, 12, 0.97); }
+  }
+}
+
+/* При прокрутке к заголовку раздела оставляем место под липкой шапкой */
+.collections-section,
+.subs-section,
+#howto,
+#faq,
+#deals {
+  scroll-margin-top: 150px;
+}
+@media (max-width: 900px) {
+  .collections-section,
+  .subs-section,
+  #howto,
+  #faq,
+  #deals {
+    scroll-margin-top: 84px;
   }
 }

@@ -102,7 +102,7 @@ export default function Collections({ games, cartIds, addToCart, openCart }: Col
   const cards = current ? current.cards : daily;
 
   return (
-    <section className="collections-section">
+    <section className="collections-section" id="collections">
       <div className="section-head">
         <div>
           <div className="section-kicker">03 · подборки от магазина</div>
