@@ -1792,9 +1792,9 @@ img {
 .catalog { padding-bottom: clamp(40px, 6vw, 80px); }
 
 .toolbar {
-  position: sticky;
-  top: 72px;
-  z-index: 40;
+  /* Панель поиска по прайсу прокручивается вместе со списком:
+     отдельный липкий поиск не нужен, он уже есть в шапке. */
+  position: relative;
   display: flex;
   gap: 10px;
   align-items: center;
@@ -1806,9 +1806,6 @@ img {
   -webkit-backdrop-filter: blur(12px);
   box-shadow: 0 18px 44px -20px rgba(0, 0, 0, 0.75);
   margin-bottom: 14px;
-  /* Принудительное аппаратное ускорение для sticky */
-  transform: translateZ(0);
-  will-change: transform;
 }
 
 .search-wrap {
@@ -3373,19 +3370,6 @@ a.menu-link { text-decoration: none; }
 /* на очень узких экранах заголовок подписок лучше перенести, чем обрезать */
 @media (max-width: 380px) {
   .subs-section .section-title { white-space: normal; }
-}
-
-/* ============================================================
-   ТЕЛЕФОН: ПАНЕЛЬ ПОИСКА КАТАЛОГА НЕ ЛИПНЕТ
-   Поиск уже есть в липкой шапке, поэтому панель над прайсом
-   при прокрутке должна уезжать вверх вместе с контентом.
-   ============================================================ */
-@media (max-width: 900px) {
-  .toolbar {
-    position: static;
-    top: auto;
-    z-index: auto;
-  }
 }
 
 /* ============================================================
