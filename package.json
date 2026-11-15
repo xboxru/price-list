@@ -10,6 +10,7 @@
     "covers": "node --experimental-strip-types scripts/build-covers.mjs public/game-covers"
   },
   "dependencies": {
+    "@waline/client": "^3.0.0",
     "clsx": "2.1.1",
     "framer-motion": "^14.3.0",
     "lucide-react": "^1.58.0",

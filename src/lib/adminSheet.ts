@@ -1,6 +1,7 @@
 import { SHEET_ID, API_KEY } from "./games.ts";
 import type { AuthorCollectionDef, PickEntry } from "./authorCollections.ts";
 import type { SlideDef } from "./slider.ts";
+import type { Review } from "./reviews.ts";
 
 /**
  * «Админка» в Google Таблице.
@@ -31,6 +32,13 @@ import type { SlideDef } from "./slider.ts";
  *                       цвет подбирается по смыслу метки («Новинка» — зелёный, «Хит» — оранжевый…)
  *    Слайды идут сверху вниз в порядке строк, максимум 8.
  *
+ *  Лист «Отзывы»  (слайдер отзывов над футером)
+ *    A: Имя           — как подписать отзыв
+ *    B: Отзыв         — текст отзыва
+ *    C: Дата          — необязательно: например «Ноябрь 2026»
+ *    D: Показывать    — необязательно: «нет» скрывает отзыв, не удаляя строку
+ *    Отзывы идут сверху вниз в порядке строк. Пока отзывов нет, блок не показывается.
+ *
  *  Лист «Подписки»  (цены на подписки)
  *    A: ID            — код подписки (gpu-1, new-6, ps-extra-3 …, список в шаблоне Подписки.csv)
  *    B: Цена          — цена в рублях (можно с пробелами и значком ₽)
@@ -48,6 +56,7 @@ export const COLLECTIONS_TAB = "Подборки";
 export const COVERS_TAB = "Обложки";
 export const SUBSCRIPTIONS_TAB = "Подписки";
 export const SLIDER_TAB = "Слайдер";
+export const REVIEWS_TAB = "Отзывы";
 
 type Rows = string[][];
 
@@ -178,4 +187,22 @@ export function parseSlideRows(rows: Rows): SlideDef[] {
 export async function fetchSliderDefs(init?: RequestInit): Promise<SlideDef[] | null> {
   const rows = await fetchTab(SLIDER_TAB, "A:F", init);
   return rows ? parseSlideRows(rows) : null;
+}
+
+export function parseReviewRows(rows: Rows): Review[] {
+  const out: Review[] = [];
+  rows.forEach((row, index) => {
+    const [name, text, date, show] = [0, 1, 2, 3].map((i) => cell(row, i));
+    if (!name || !text) return;
+    if (index === 0 && /^(имя|автор)/i.test(name) && /^(отзыв|текст)/i.test(text)) return; // строка-заголовок
+    if (/^(нет|no|0|скрыть|false)$/i.test(show)) return;
+    out.push({ name, text, date: date || undefined });
+  });
+  return out;
+}
+
+/** Отзывы из листа «Отзывы»; null, если листа нет (тогда запасной список из reviews.ts) */
+export async function fetchReviews(init?: RequestInit): Promise<Review[] | null> {
+  const rows = await fetchTab(REVIEWS_TAB, "A:D", init);
+  return rows ? parseReviewRows(rows) : null;
 }

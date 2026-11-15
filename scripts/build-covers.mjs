@@ -6,7 +6,7 @@
  *   1. скачивает прайс (тот же Google Sheet, что и сайт);
  *   2. теми же функциями, что и сайт (плюс все игры из авторских подборок), определяет игры подборки и скидок
  *      на вчера, сегодня и ближайшие дни (чтобы любой часовой пояс был покрыт);
- *   3. для новых игр ищет обложку и жанры по очереди: RAWG → магазин Xbox → IGDB → SteamGridDB → Steam;
+ *   3. для новых игр ищет обложку и жанры по очереди: магазин Xbox → RAWG → IGDB → SteamGridDB → Steam;
  *   4. сохраняет картинки в папку сайта. Посетители грузят их с вашего же домена,
  *      поэтому VPN не нужен.
  *
@@ -39,7 +39,7 @@ const RETRY_MISS_AFTER_MS = 7 * 24 * 60 * 60 * 1000; // не нашли — пр
 /** На сколько дней вперёд/назад считаем наборы: вчера, сегодня, завтра, послезавтра */
 const DAY_OFFSETS = [-1, 0, 1, 2];
 /** Менять при улучшении поиска: тогда ранее ненайденные игры будут искаться заново */
-const SEARCH_VERSION = 7;
+const SEARCH_VERSION = 8;
 
 /** Ширина скачиваемых картинок (px). Больше — чётче, но тяжелее файл (1280 ≈ 100–250 КБ). */
 const IMAGE_WIDTH = 1280;
@@ -192,16 +192,22 @@ const XBOX_IMAGE_ORDER = [
 
 const httpsUrl = (u) => (u?.startsWith("//") ? `https:${u}` : u);
 
-async function xboxProduct(bigId) {
-  const res = await get(
-    `${DCAT}/products?bigIds=${encodeURIComponent(bigId)}&market=US&languages=en-US&MS-CV=DGU1mcuYo0WyAe7r.1`
-  );
-  if (!res.ok) return null;
-  return (await res.json())?.Products?.[0] ?? null;
+// Заголовок-«отпечаток», который принимает публичный каталог Microsoft (как в рабочем проекте с Express)
+const MS_CV = "DGU1mcuYo0WMMp+F.1";
+
+async function xboxProducts(bigIds) {
+  if (!bigIds.length) return [];
+  const url = new URL(`${DCAT}/products`);
+  url.searchParams.set("bigIds", bigIds.join(","));
+  url.searchParams.set("market", "US");
+  url.searchParams.set("languages", "en-US");
+  url.searchParams.set("MS-CV", MS_CV);
+  const res = await get(url.toString());
+  if (!res.ok) return [];
+  return (await res.json())?.Products ?? [];
 }
 
-async function saveXboxGame(bigId, fallbackImage, imagesDir) {
-  const product = await xboxProduct(bigId).catch(() => null);
+async function saveXboxProduct(bigId, product, fallbackImage, imagesDir) {
   const images = product?.LocalizedProperties?.[0]?.Images ?? [];
 
   const urls = [];
@@ -209,7 +215,7 @@ async function saveXboxGame(bigId, fallbackImage, imagesDir) {
     const img = images.find((i) => i.ImagePurpose === purpose && i.Uri);
     if (img) {
       const base = httpsUrl(img.Uri);
-      urls.push(`${base}?q=95&w=${IMAGE_WIDTH}`, base); // сначала уменьшенная копия, потом оригинал
+      urls.push(`${base}?q=95&w=${IMAGE_WIDTH}`, base); // сначала копия нужной ширины, потом оригинал
       break;
     }
   }
@@ -224,28 +230,53 @@ async function saveXboxGame(bigId, fallbackImage, imagesDir) {
   return { image: `images/${file}`, genres };
 }
 
-/** Поиск игры в магазине Xbox по названию */
-async function fromXbox(term, imagesDir) {
-  const res = await get(
-    `${DCAT}/productFamilies/autosuggest?market=US&languages=en-US&query=${encodeURIComponent(term)}&MS-CV=DGU1mcuYo0WyAe7r.1`
-  );
-  if (!res.ok) return null;
-  const sets = (await res.json())?.ResultSets ?? [];
-  const items = sets
-    .flatMap((rs) => rs.Suggests ?? [])
-    .filter((i) => i.Title && (!i.Source || /game/i.test(i.Source)));
-  const t = norm(term);
-  const best =
-    items.find((i) => norm(i.Title) === t) ??
-    items
-      .map((i) => ({ i, score: overlap(term, i.Title) }))
-      .filter((x) => x.score >= MIN_MATCH)
-      .sort((x, y) => y.score - x.score)[0]?.i;
-  if (!best) return null;
+async function saveXboxGame(bigId, fallbackImage, imagesDir) {
+  const product = (await xboxProducts([bigId]).catch(() => []))[0] ?? null;
+  return saveXboxProduct(bigId, product, fallbackImage, imagesDir);
+}
 
-  const bigId = best.Metas?.find((m) => m.Key === "BigCatalogId")?.Value;
-  if (!bigId) return null;
-  return saveXboxGame(bigId, best.ImageUrl, imagesDir);
+/** Поиск игры в магазине Xbox по названию (формат запроса и ответа проверен на рабочем проекте) */
+async function fromXbox(term, imagesDir) {
+  const url = new URL(`${DCAT}/productFamilies/autosuggest`);
+  url.searchParams.set("market", "US");
+  url.searchParams.set("languages", "en-US");
+  url.searchParams.set("query", term);
+  url.searchParams.set("productFamilyNames", "Games");
+  url.searchParams.set("topProducts", "10");
+  url.searchParams.set("MS-CV", MS_CV);
+  const res = await get(url.toString());
+  if (!res.ok) return null;
+
+  // ответ: { Results: [ { Products: [ { ProductId, Title, ImageUrl, Type } ] } ] }
+  const candidates = [];
+  for (const group of (await res.json())?.Results ?? []) {
+    for (const p of group.Products ?? []) {
+      if (p.ProductId && p.Title && !candidates.some((c) => c.id === p.ProductId.toUpperCase())) {
+        candidates.push({ id: p.ProductId.toUpperCase(), title: p.Title, image: p.ImageUrl });
+      }
+    }
+  }
+  if (!candidates.length) return null;
+
+  // у Microsoft в названиях «Standard Edition», «Xbox One Edition» и т.п. — сравниваем и без них
+  const t = norm(term);
+  const score = (c) => Math.max(overlap(term, c.title), overlap(term, normalizeTitle(c.title)));
+  const ranked = candidates
+    .map((c) => ({ c, score: norm(c.title) === t || norm(normalizeTitle(c.title)) === t ? 1 : score(c) }))
+    .filter((x) => x.score >= MIN_MATCH)
+    .sort((x, y) => y.score - x.score)
+    .map((x) => x.c);
+  if (!ranked.length) return null;
+
+  // одним запросом получаем сведения по подходящим и берём первую настоящую игру (не DLC) с картинкой
+  const details = await xboxProducts(ranked.map((c) => c.id)).catch(() => []);
+  for (const c of ranked) {
+    const product = details.find((d) => d.ProductId?.toUpperCase() === c.id);
+    if (product?.ProductType && product.ProductType !== "Game") continue;
+    const saved = await saveXboxProduct(c.id, product, c.image, imagesDir);
+    if (saved) return saved;
+  }
+  return null;
 }
 
 /** Игра из магазина Xbox по известному ID продукта (12 символов, из ссылки xbox.com/games/store/…/ID) */
@@ -489,6 +520,8 @@ function termVariants(term) {
     const head = term.split(sep)[0].trim();
     if (head.length >= 3) list.push(head);
   }
+  // в магазине Microsoft многие названия начинаются с «The» («The Witcher 3», «The Sims 4»)
+  if (!/^the\s/i.test(term)) list.push(`the ${term}`);
   return [...new Set(list)];
 }
 
@@ -639,12 +672,12 @@ export async function run({ outDir, cacheDir = ".covers-cache", games, overrides
         meta = await fromSgdbId(spec.id, imagesDir);
       } else {
         const variants = termVariants(term);
-        // Порядок источников: RAWG → магазин Xbox → IGDB → SteamGridDB → Steam
+        // Порядок источников: магазин Xbox (Microsoft) → RAWG → IGDB → SteamGridDB → Steam
         // (источники без ключей пропускаются сами)
         const hasIgdb = process.env.IGDB_CLIENT_ID && process.env.IGDB_CLIENT_SECRET;
         const sources = [
-          { fn: fromRawg, delay: process.env.RAWG_KEY ? DELAY_MS : 0 },
           { fn: fromXbox, delay: DELAY_MS },
+          { fn: fromRawg, delay: process.env.RAWG_KEY ? DELAY_MS : 0 },
           { fn: fromIgdb, delay: hasIgdb ? DELAY_MS : 0 },
           { fn: fromSgdb, delay: process.env.STEAMGRIDDB_KEY ? DELAY_MS : 0 },
           { fn: fromSteam, delay: STEAM_DELAY_MS },

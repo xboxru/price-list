@@ -9,6 +9,7 @@ import Deals from "./components/Deals";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
 import HowToOrder from "./components/HowToOrder";
+import Reviews from "./components/Reviews";
 import Marquee from "./components/Marquee";
 import Navbar from "./components/Navbar";
 import SiteHeader from "./components/SiteHeader";
@@ -196,6 +197,8 @@ export default function App() {
         )}
 
         <HowToOrder />
+
+        <Reviews />
       </div>
 
       <div className="shell">

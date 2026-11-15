@@ -1792,9 +1792,9 @@ img {
 .catalog { padding-bottom: clamp(40px, 6vw, 80px); }
 
 .toolbar {
-  /* Панель поиска по прайсу прокручивается вместе со списком:
-     отдельный липкий поиск не нужен, он уже есть в шапке. */
-  position: relative;
+  position: sticky;
+  top: 72px;
+  z-index: 40;
   display: flex;
   gap: 10px;
   align-items: center;
@@ -1806,6 +1806,9 @@ img {
   -webkit-backdrop-filter: blur(12px);
   box-shadow: 0 18px 44px -20px rgba(0, 0, 0, 0.75);
   margin-bottom: 14px;
+  /* Принудительное аппаратное ускорение для sticky */
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .search-wrap {
@@ -3373,6 +3376,19 @@ a.menu-link { text-decoration: none; }
 }
 
 /* ============================================================
+   ТЕЛЕФОН: ПАНЕЛЬ ПОИСКА КАТАЛОГА НЕ ЛИПНЕТ
+   Поиск уже есть в липкой шапке, поэтому панель над прайсом
+   при прокрутке должна уезжать вверх вместе с контентом.
+   ============================================================ */
+@media (max-width: 900px) {
+  .toolbar {
+    position: static;
+    top: auto;
+    z-index: auto;
+  }
+}
+
+/* ============================================================
    ВЕРХНЯЯ СТРОКА: МИНИ-ИКОНКИ У ССЫЛОК
    Telegram-канал · Как заказать · Частые вопросы
    ============================================================ */
@@ -3516,4 +3532,245 @@ a.menu-link { text-decoration: none; }
   #deals {
     scroll-margin-top: 84px;
   }
+}
+
+/* ============================================================
+   СЛАЙДЕР ОТЗЫВОВ (над футером)
+   ============================================================ */
+.reviews { margin: 56px 0 24px; }
+.reviews .section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.reviews-nav { display: flex; gap: 8px; flex: 0 0 auto; }
+.reviews-nav button {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line-strong);
+  transition: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s;
+}
+.reviews-nav button:hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: rgba(0, 255, 157, 0.45);
+  color: var(--accent);
+}
+.reviews-nav button:disabled { opacity: 0.35; cursor: default; }
+
+.reviews-track {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 4px 2px 10px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.reviews-track::-webkit-scrollbar { display: none; }
+
+.review-card {
+  position: relative;
+  flex: 0 0 calc((100% - 32px) / 3);
+  min-width: 0;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+  border-radius: 22px;
+  background:
+    radial-gradient(70% 100% at 100% 0%, rgba(0, 255, 157, 0.07), transparent 62%),
+    rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+}
+.review-quote { color: var(--accent); opacity: 0.85; flex: 0 0 auto; }
+.review-text {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 7;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-line;
+}
+.review-text.open { display: block; -webkit-line-clamp: unset; }
+.review-more {
+  align-self: flex-start;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.review-author {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.review-avatar {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  border: 1px solid rgba(0, 255, 157, 0.25);
+  color: var(--accent);
+  font-weight: 800;
+}
+.review-author b { display: block; font-size: 14px; color: var(--text); }
+.review-author small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+
+@media (max-width: 1000px) {
+  .review-card { flex-basis: calc((100% - 16px) / 2); }
+}
+@media (max-width: 640px) {
+  .reviews { margin-top: 40px; }
+  .reviews-nav { display: none; }
+  .review-card { flex-basis: 86%; }
+}
+
+/* ============================================================
+   WALINE (форма «Оставить отзыв» и лента отзывов): тёмная тема сайта.
+   Переменные заданы на обёртке .reviews-waline, поэтому перекрывают значения Waline из :root.
+   ============================================================ */
+.reviews-waline {
+  margin-top: 36px;
+  max-width: 860px;
+
+  --waline-font-size: 15px;
+  --waline-white: #0b0c10;
+  --waline-light-grey: #8b8fa8;
+  --waline-dark-grey: #a9adc4;
+  --waline-theme-color: #00ff9d;
+  --waline-active-color: #00d47e;
+  --waline-color: #e6e8f2;
+  --waline-bg-color: #14151d;
+  --waline-bg-color-light: #1a1b25;
+  --waline-bg-color-hover: #20212d;
+  --waline-border-color: rgba(255, 255, 255, 0.12);
+  --waline-disable-bg-color: #20212d;
+  --waline-disable-color: #6c7090;
+  --waline-code-bg-color: #0b0c10;
+  --waline-bq-color: #1a1b25;
+  --waline-info-bg-color: #1a1b25;
+  --waline-info-color: #8b8fa8;
+  --waline-badge-color: #00ff9d;
+}
+/* как на вашей странице: счётчик комментариев и сортировка скрыты */
+.reviews-waline .wl-count,
+.reviews-waline .wl-sort { display: none; }
+
+/* ---------- оформление формы ---------- */
+.reviews-waline-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.reviews-waline-title::before {
+  content: "";
+  width: 4px;
+  height: 20px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.reviews-waline-lead { margin: 0 0 18px; font-size: 14px; line-height: 1.5; color: var(--muted); }
+
+.reviews-waline .wl-panel {
+  margin: 0 0 26px;
+  padding: 6px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025));
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 28px 60px -40px rgba(0, 255, 157, 0.4);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.reviews-waline .wl-panel:focus-within {
+  border-color: rgba(0, 255, 157, 0.5);
+  box-shadow: 0 0 0 4px rgba(0, 255, 157, 0.1), 0 28px 60px -40px rgba(0, 255, 157, 0.5);
+}
+.reviews-waline .wl-header { padding: 4px 8px; border-bottom: 1px solid var(--line); }
+.reviews-waline .wl-header input,
+.reviews-waline .wl-editor {
+  background: transparent;
+  color: var(--text);
+}
+.reviews-waline .wl-editor {
+  min-height: 120px;
+  padding: 12px 14px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.reviews-waline .wl-footer { padding: 6px 8px 8px; }
+.reviews-waline .wl-btn {
+  border-radius: 12px;
+  font-weight: 700;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, filter 0.2s;
+}
+.reviews-waline .wl-btn.primary {
+  padding: 9px 24px;
+  background: var(--accent);
+  border-color: transparent;
+  color: #04120c;
+}
+.reviews-waline .wl-btn.primary:hover { filter: brightness(1.08); }
+
+/* ---------- оформление ленты отзывов ---------- */
+.reviews-waline .wl-card-item {
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+}
+.reviews-waline .wl-user img {
+  border-radius: 14px;
+  border: 1px solid var(--line-strong);
+}
+.reviews-waline .wl-card {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background:
+    radial-gradient(70% 120% at 100% 0%, rgba(0, 255, 157, 0.06), transparent 62%),
+    rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--line);
+  transition: border-color 0.2s;
+}
+.reviews-waline .wl-card:hover { border-color: var(--line-strong); }
+.reviews-waline .wl-nick { color: var(--text); font-weight: 700; }
+.reviews-waline .wl-time { color: var(--muted); font-size: 12px; }
+.reviews-waline .wl-content { margin-top: 8px; color: var(--text); line-height: 1.65; }
+.reviews-waline .wl-content p { color: var(--text); }
+.reviews-waline .wl-empty { color: var(--muted); }
+
+/* кнопка «Загрузить ещё» */
+.reviews-waline .wl-operation { margin-top: 6px; text-align: center; }
+.reviews-waline .wl-operation .wl-btn {
+  padding: 10px 28px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+}
+.reviews-waline .wl-operation .wl-btn:hover {
+  background: var(--accent-soft);
+  border-color: rgba(0, 255, 157, 0.45);
+  color: var(--accent);
 }
