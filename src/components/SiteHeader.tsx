@@ -5,6 +5,7 @@ import {
   Gamepad2,
   HelpCircle,
   Layers3,
+  Quote,
   LayoutGrid,
   List,
   Menu,
@@ -19,7 +20,7 @@ import { createPortal } from "react-dom";
 import { TG_CHANNEL, TG_PM } from "../lib/games";
 import { MenuContact } from "./Navbar";
 
-type Page = "games" | "subs" | "collections";
+type Page = "games" | "subs" | "collections" | "reviews";
 
 interface SiteHeaderProps {
   page: Page;
@@ -159,8 +160,9 @@ export default function SiteHeader({
   // Переход в раздел страницы и прокрутка к блоку внутри него
   const goPage = (p: Page, anchor?: string) => {
     setPage(p);
-    // «Подборки» и «Подписки» прокручивают к заголовку раздела, «Игры Xbox» — к началу страницы
-    const target = anchor ?? (p === "collections" ? "collections" : p === "subs" ? "subs" : undefined);
+    // «Подборки», «Подписки» и «Отзывы» прокручивают к заголовку раздела, «Игры Xbox» — к началу страницы
+    const target =
+      anchor ?? (p === "collections" ? "collections" : p === "subs" ? "subs" : p === "reviews" ? "reviews" : undefined);
     window.setTimeout(
       () => (target ? scrollToId(target) : window.scrollTo({ top: 0, behavior: "smooth" })),
       80
@@ -178,6 +180,7 @@ export default function SiteHeader({
     { label: "Подборки", icon: LayoutGrid, active: page === "collections", onClick: () => goPage("collections") },
     { label: "Скидки недели", icon: Flame, active: false, onClick: () => goPage("games", "deals") },
     { label: "Подписки", icon: Layers3, active: page === "subs", onClick: () => goPage("subs") },
+    { label: "Отзывы", icon: Quote, active: page === "reviews", onClick: () => goPage("reviews") },
     { label: "Как заказать", icon: HelpCircle, active: false, onClick: () => scrollToId("howto") },
   ];
 
@@ -413,6 +416,10 @@ export default function SiteHeader({
                     <button className={`menu-link ${page === "subs" ? "active" : ""}`} onClick={fromMenu(() => goPage("subs"))}>
                       <Layers3 size={20} />
                       Подписки
+                    </button>
+                    <button className={`menu-link ${page === "reviews" ? "active" : ""}`} onClick={fromMenu(() => goPage("reviews"))}>
+                      <Quote size={20} />
+                      Отзывы
                     </button>
                   </div>
 

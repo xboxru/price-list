@@ -3519,6 +3519,7 @@ a.menu-link { text-decoration: none; }
 /* При прокрутке к заголовку раздела оставляем место под липкой шапкой */
 .collections-section,
 .subs-section,
+.reviews,
 #howto,
 #faq,
 #deals {
@@ -3527,6 +3528,7 @@ a.menu-link { text-decoration: none; }
 @media (max-width: 900px) {
   .collections-section,
   .subs-section,
+  .reviews,
   #howto,
   #faq,
   #deals {
@@ -3537,7 +3539,7 @@ a.menu-link { text-decoration: none; }
 /* ============================================================
    СЛАЙДЕР ОТЗЫВОВ (над футером)
    ============================================================ */
-.reviews { margin: 56px 0 24px; }
+.reviews { margin: 24px 0 24px; }
 .reviews .section-head {
   display: flex;
   align-items: flex-end;

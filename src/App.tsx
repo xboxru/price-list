@@ -30,7 +30,7 @@ export default function App() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
-  const [page, setPage] = useState<"games" | "subs" | "collections">("games");
+  const [page, setPage] = useState<"games" | "subs" | "collections" | "reviews">("games");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpenSignal, setCartOpenSignal] = useState(0);
   // Вид карточек на телефоне: «list» — один в ряд, «grid» — плитка в два столбца.
@@ -165,6 +165,12 @@ export default function App() {
           >
             Подписки
           </button>
+          <button
+            className={`nav-tab ${page === "reviews" ? "active" : ""}`}
+            onClick={() => setPage("reviews")}
+          >
+            Отзывы
+          </button>
         </div>
         )}
 
@@ -192,13 +198,13 @@ export default function App() {
           </>
         ) : page === "collections" ? (
           <Collections games={games} cartIds={cartIds} addToCart={addToCart} openCart={openCart} />
+        ) : page === "reviews" ? (
+          <Reviews />
         ) : (
           <Subscriptions cartIds={cartIds} addToCart={addToCart} openCart={openCart} />
         )}
 
         <HowToOrder />
-
-        <Reviews />
       </div>
 
       <div className="shell">

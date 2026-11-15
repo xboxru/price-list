@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { TG_PM } from "../lib/games";
 
 interface NavbarProps {
-  currentPage: "games" | "subs" | "collections";
-  setPage: (page: "games" | "subs" | "collections") => void;
+  currentPage: "games" | "subs" | "collections" | "reviews";
+  setPage: (page: "games" | "subs" | "collections" | "reviews") => void;
   onSearch: (query: string) => void;
 }
 
@@ -80,6 +80,7 @@ export default function Navbar({ currentPage, setPage, onSearch }: NavbarProps) 
     { id: "games", label: "Игры Xbox", icon: LayoutGrid },
     { id: "collections", label: "Подборки", icon: Layers3 },
     { id: "subs", label: "Подписки", icon: Gamepad2 },
+    { id: "reviews", label: "Отзывы", icon: Gamepad2 },
   ];
 
   const toggleMenu = () => {
@@ -87,7 +88,7 @@ export default function Navbar({ currentPage, setPage, onSearch }: NavbarProps) 
     setSearchOpen(false);
   };
 
-  const handlePageSelect = (page: "games" | "subs" | "collections") => {
+  const handlePageSelect = (page: "games" | "subs" | "collections" | "reviews") => {
     setPage(page);
     setIsOpen(false);
     setSearchOpen(false);
@@ -198,7 +199,7 @@ export default function Navbar({ currentPage, setPage, onSearch }: NavbarProps) 
                   <button
                     key={item.id}
                     className={`menu-link ${currentPage === item.id ? "active" : ""}`}
-                    onClick={() => handlePageSelect(item.id as "games" | "subs" | "collections")}
+                    onClick={() => handlePageSelect(item.id as "games" | "subs" | "collections" | "reviews")}
                   >
                     <item.icon size={20} />
                     {item.label}
