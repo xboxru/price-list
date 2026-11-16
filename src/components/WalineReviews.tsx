@@ -16,6 +16,8 @@ export default function WalineReviews() {
       path: WALINE_PATH,
       lang: "ru",
       reaction: false,
+      // у закреплённого отзыва вместо текста «Липкий» — только иконка (рисуется в index.css)
+      locale: { sticky: "" },
       meta: ["nick"], // в форме только поле «Псевдоним» (без эл. адреса и веб-сайта)
       pageSize: 3, // не более трёх отзывов за раз, остальные по кнопке «Загрузить ещё»
       dark: false, // тёмную тему рисуем своими стилями (.waline-wrap в index.css)
