@@ -23,10 +23,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
 
@@ -37,7 +37,7 @@ jobs:
         run: npm run build
 
       - name: Restore covers cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .covers-cache
           key: covers-${{ github.run_id }}
@@ -58,7 +58,7 @@ jobs:
           ls -la dist/game-covers | head -5
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
@@ -72,4 +72,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
