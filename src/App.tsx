@@ -19,6 +19,15 @@ import { ScrollTop, Toast } from "./components/Overlays";
 import { useCopyToast } from "./hooks/useCopyToast";
 import { Deal, Game, fallbackGames, fetchGames, parsePrice, resolveDeals } from "./lib/games";
 
+type PageId = "games" | "subs" | "collections" | "reviews";
+const PAGES: PageId[] = ["games", "subs", "collections", "reviews"];
+
+/** Вкладка из адреса: «#/collections» → collections; без хэша — главная («Игры Xbox») */
+function pageFromHash(): PageId {
+  const id = window.location.hash.match(/^#\/(\w+)/)?.[1] as PageId | undefined;
+  return id && PAGES.includes(id) ? id : "games";
+}
+
 /**
  * Вид шапки:
  *  "two-tier" — двухъярусная: справочная строка, поиск/корзина/связь, меню разделов
@@ -30,7 +39,25 @@ export default function App() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
-  const [page, setPage] = useState<"games" | "subs" | "collections" | "reviews">("games");
+  // Текущая вкладка хранится в адресе (#/collections, #/subs, #/reviews), поэтому
+  // после перезагрузки страницы остаёмся на ней, а кнопка «Назад» возвращает на прошлую вкладку
+  const [page, setPageState] = useState<PageId>(pageFromHash);
+  const setPage = useCallback((next: PageId) => {
+    setPageState(next);
+    const hash = next === "games" ? "" : `#/${next}`;
+    if (window.location.hash !== hash) {
+      window.history.pushState(null, "", hash || window.location.pathname + window.location.search);
+    }
+  }, []);
+  useEffect(() => {
+    const onNavigate = () => setPageState(pageFromHash());
+    window.addEventListener("popstate", onNavigate);
+    window.addEventListener("hashchange", onNavigate);
+    return () => {
+      window.removeEventListener("popstate", onNavigate);
+      window.removeEventListener("hashchange", onNavigate);
+    };
+  }, []);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpenSignal, setCartOpenSignal] = useState(0);
   // Вид карточек на телефоне: «list» — один в ряд, «grid» — плитка в два столбца.

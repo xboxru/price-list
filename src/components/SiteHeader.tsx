@@ -218,8 +218,11 @@ export default function SiteHeader({
         <a
           className="hdr-brand"
           href="#top"
-          onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-          aria-label="XP Box — наверх"
+          onClick={(e) => {
+            e.preventDefault();
+            goPage("games"); // логотип и название ведут на главную («Игры Xbox») и прокручивают к началу
+          }}
+          aria-label="XP Box — на главную"
         >
           <img src="./logo.png" alt="" width={46} height={46} />
           <span className="hdr-brand-text">
