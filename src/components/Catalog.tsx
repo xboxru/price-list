@@ -105,6 +105,16 @@ export default function Catalog({ games, loading, cartIds, addToCart, removeFrom
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortMode>("none");
   const [visible, setVisible] = useState(CHUNK);
+  const [zoomed, setZoomed] = useState<{ src: string; name: string } | null>(null);
+
+  useEffect(() => {
+    if (!zoomed) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setZoomed(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [zoomed]);
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -239,6 +249,7 @@ export default function Catalog({ games, loading, cartIds, addToCart, removeFrom
             >
               {chunk.map((g, ri) => {
                 const inCart = cartIds.has(`game-${g.id}`);
+                const cover = g.cover;
                 return (
                   <div
                     className={`row ${g.hot ? "hot" : ""} ${inCart ? "in-cart-row" : ""}`}
@@ -249,9 +260,22 @@ export default function Catalog({ games, loading, cartIds, addToCart, removeFrom
                     <span className="row-idx">
                       {String(ci * CHUNK + ri + 1).padStart(4, "0")}
                     </span>
-                    <span className="row-cover" aria-hidden="true">
-                      {g.cover && <img src={g.cover} alt="" loading="lazy" />}
-                    </span>
+                    {cover ? (
+                      <button
+                        type="button"
+                        className="row-cover"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setZoomed({ src: cover, name: g.name });
+                        }}
+                        title="Увеличить обложку"
+                        aria-label={`Увеличить обложку: ${g.name}`}
+                      >
+                        <img src={cover} alt="" loading="lazy" />
+                      </button>
+                    ) : (
+                      <span className="row-cover" aria-hidden="true" />
+                    )}
                     <span className="row-name">
                       {(g.hot || g.isNew || g.isPreorder) && (
                         <span style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
@@ -305,6 +329,32 @@ export default function Catalog({ games, loading, cartIds, addToCart, removeFrom
           ))}
         </div>
       )}
+
+      <AnimatePresence>
+        {zoomed && (
+          <motion.div
+            className="cover-zoom"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            onClick={() => setZoomed(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Обложка: ${zoomed.name}`}
+          >
+            <motion.div
+              className="cover-zoom-card"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.94, opacity: 0 }}
+              transition={{ duration: 0.2, ease }}
+            >
+              <img src={zoomed.src} alt={zoomed.name} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {!loading && filtered.length > 0 && (
         <div className="list-more">

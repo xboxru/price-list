@@ -2001,10 +2001,14 @@ img {
   aspect-ratio: 2 / 3;
   flex: 0 0 auto;
   overflow: hidden;
+  padding: 0;
   border-radius: 6px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.035);
+  transition: transform 0.2s ease, border-color 0.2s ease;
 }
+button.row-cover { cursor: zoom-in; }
+button.row-cover:hover { transform: scale(1.12); border-color: var(--accent); }
 .row-cover img {
   display: block;
   width: 100%;
@@ -2012,6 +2016,36 @@ img {
   object-fit: cover;
 }
 .row:hover .row-cover { border-color: var(--line-strong); }
+
+/* увеличение обложки по клику */
+.cover-zoom {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(4, 5, 9, 0.8);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  cursor: zoom-out;
+}
+.cover-zoom-card {
+  width: clamp(170px, 55vw, 280px);
+  aspect-ratio: 2 / 3;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 30px 80px -24px rgba(0, 0, 0, 0.9);
+}
+.cover-zoom-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@media (max-width: 720px) {
+  .cover-zoom-card { width: clamp(160px, 58vw, 240px); }
+}
 
 /* ============================================================
    CART ROW BUTTON
