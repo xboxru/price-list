@@ -4,7 +4,12 @@
 
 export const SHEET_ID = "1MzBvxOzI6Yn3sRkAdJZeG-mdSeoQwPRYKv9thY9_U-0";
 export const API_KEY = "AIzaSyAz6NMjP-Sgq2P9FgGOc8T1prYM57b-An0";
-export const SHEET_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/ru%20price!A:B?key=${API_KEY}`;
+/**
+ * Лист «ru price»: A — название игры, B — цена, C — необязательно: ссылка на обложку (2:3).
+ * Ссылка должна быть прямой (заканчиваться на .jpg/.png/.webp или быть адресом картинки),
+ * тогда в прайс-листе слева от названия покажется миниатюра.
+ */
+export const SHEET_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/ru%20price!A:C?key=${API_KEY}`;
 
 export const TG_CHANNEL = "https://t.me/spelonline";
 export const TG_PM = "https://t.me/realfurys";
@@ -18,6 +23,7 @@ export interface Game {
   hot: boolean;        // had a flame marker in the sheet
   isNew: boolean;      // had a 🆕 marker in the sheet
   isPreorder: boolean; // had a 📆 marker in the sheet
+  cover: string | null; // ссылка на обложку из колонки C (только http/https)
 }
 
 export interface DealDef {
@@ -103,6 +109,7 @@ export function parseSheet(values: string[][] | undefined): Game[] {
     if (!row || !row[0] || !row[1]) continue;
     const { name, hot, isNew, isPreorder } = cleanName(String(row[0]));
     const price = String(row[1]).trim();
+    const coverRaw = String(row[2] ?? "").trim();
     games.push({
       id: i,
       name,
@@ -112,6 +119,7 @@ export function parseSheet(values: string[][] | undefined): Game[] {
       hot,
       isNew,
       isPreorder,
+      cover: /^https?:\/\//i.test(coverRaw) ? coverRaw : null,
     });
   }
   return games;

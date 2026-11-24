@@ -207,6 +207,7 @@ export default function Catalog({ games, loading, cartIds, addToCart, removeFrom
 
       <div className="list-head" aria-hidden="true">
         <span>#</span>
+        <span />
         <span className="h-name">Название игры</span>
         <span className="r">Цена</span>
         <span />
@@ -247,6 +248,9 @@ export default function Catalog({ games, loading, cartIds, addToCart, removeFrom
                   >
                     <span className="row-idx">
                       {String(ci * CHUNK + ri + 1).padStart(4, "0")}
+                    </span>
+                    <span className="row-cover" aria-hidden="true">
+                      {g.cover && <img src={g.cover} alt="" loading="lazy" />}
                     </span>
                     <span className="row-name">
                       {(g.hot || g.isNew || g.isPreorder) && (
