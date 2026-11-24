@@ -21,6 +21,13 @@ export default function WalineReviews() {
       meta: ["nick"], // в форме только поле «Псевдоним» (без эл. адреса и веб-сайта)
       pageSize: 3, // не более трёх отзывов за раз, остальные по кнопке «Загрузить ещё»
       dark: false, // тёмную тему рисуем своими стилями (.waline-wrap в index.css)
+      // без кнопки RSS и подписи «Powered by Waline» в подвале
+      noRss: true,
+      noCopyright: true,
+      // поиск и вставка гифок через Giphy: встроено в Waline, но по умолчанию выключено
+      search: true,
+      // без кнопки загрузки изображения и вставки/перетаскивания картинок
+      imageUploader: false,
       placeholder: "Поделитесь отзывом о покупке…",
     });
     return () => waline?.destroy();
