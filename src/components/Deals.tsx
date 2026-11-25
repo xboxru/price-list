@@ -1,7 +1,8 @@
+import { AnimatePresence, motion } from "framer-motion";
 import { Flame, Plus, ShoppingCart, Sparkles, Timer } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCountdown } from "../hooks/useCountdown";
-import CoverImage from "./CoverImage";
+import { CoverView } from "./CoverImage";
 import { useGameCover } from "../hooks/useGameCover";
 import { Deal, formatPrice, isoWeek } from "../lib/games";
 import { detectPlatforms, displayTitle } from "../lib/collections";
@@ -11,6 +12,37 @@ interface DealsProps {
   cartIds: Set<string>;
   addToCart: (id: string, name: string, price: string) => void;
   openCart: () => void;
+}
+
+const ease = [0.2, 0.7, 0.2, 1] as const;
+
+type ZoomTarget = { src: string; name: string };
+
+/** Обложка, по клику открывающая увеличение */
+function ZoomCover({
+  title,
+  cover,
+  loading,
+  onZoom,
+}: {
+  title: string;
+  cover?: string;
+  loading?: "lazy" | "eager";
+  onZoom: (target: ZoomTarget) => void;
+}) {
+  const { src, loading: pending } = useGameCover(title, cover);
+  return (
+    <button
+      type="button"
+      className="deal-cover"
+      onClick={() => src && onZoom({ src, name: title })}
+      disabled={!src}
+      title={src ? "Увеличить обложку" : undefined}
+      aria-label={`Увеличить обложку: ${title}`}
+    >
+      <CoverView title={title} src={src} pending={pending} loading={loading} />
+    </button>
+  );
 }
 
 /** Жанры игры из индекса обложек; пока не загрузились — нейтральная подпись */
@@ -34,6 +66,16 @@ function Platforms({ name, className = "" }: { name: string; className?: string 
 
 export default function Deals({ deals, cartIds, addToCart, openCart }: DealsProps) {
   const cd = useCountdown();
+  const [zoomed, setZoomed] = useState<ZoomTarget | null>(null);
+
+  useEffect(() => {
+    if (!zoomed) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setZoomed(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [zoomed]);
 
   const { spotlight, cards, maxDiscount } = useMemo(() => {
     if (deals.length === 0) return { spotlight: undefined, cards: [], maxDiscount: 0 };
@@ -77,7 +119,12 @@ export default function Deals({ deals, cartIds, addToCart, openCart }: DealsProp
         {/* ── SPOTLIGHT ── */}
         <article className="deal-spot deals-fadein">
           <div className="art">
-            <CoverImage title={spotlight.game.name} cover={spotlight.cover} loading="eager" />
+            <ZoomCover
+              title={spotlight.game.name}
+              cover={spotlight.cover}
+              loading="eager"
+              onZoom={setZoomed}
+            />
           </div>
           <div className="deal-spot-body">
             <span className="discount-badge wide pulse">
@@ -123,6 +170,7 @@ export default function Deals({ deals, cartIds, addToCart, openCart }: DealsProp
               inCart={cartIds.has(`deal-${deal.game.id}`)}
               onAddToCart={() => handleAddToCart(deal)}
               onOpenCart={openCart}
+              onZoom={setZoomed}
             />
           ))}
         </div>
@@ -133,6 +181,32 @@ export default function Deals({ deals, cartIds, addToCart, openCart }: DealsProp
           * цены со скидкой действуют до конца недели — успейте заказать
         </p>
       )}
+
+      <AnimatePresence>
+        {zoomed && (
+          <motion.div
+            className="cover-zoom"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            onClick={() => setZoomed(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Обложка: ${zoomed.name}`}
+          >
+            <motion.div
+              className="cover-zoom-card"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.94, opacity: 0 }}
+              transition={{ duration: 0.2, ease }}
+            >
+              <img src={zoomed.src} alt={zoomed.name} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }
@@ -143,12 +217,14 @@ function DealCard({
   inCart,
   onAddToCart,
   onOpenCart,
+  onZoom,
 }: {
   deal: Deal;
   index: number;
   inCart: boolean;
   onAddToCart: () => void;
   onOpenCart: () => void;
+  onZoom: (target: ZoomTarget) => void;
 }) {
   return (
     <article
@@ -157,7 +233,7 @@ function DealCard({
     >
       <div className="deal-thumb">
         <span className="discount-badge off">−{Math.round(deal.discount * 100)}%</span>
-        <CoverImage title={deal.game.name} cover={deal.cover} />
+        <ZoomCover title={deal.game.name} cover={deal.cover} onZoom={onZoom} />
       </div>
       <div className="deal-info">
         <h4>{displayTitle(deal.game.name)}</h4>

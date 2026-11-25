@@ -1094,12 +1094,31 @@ img {
 .deal-thumb img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  /* вертикальные обложки из таблицы показываем целиком, без обрезки */
+  object-fit: contain;
   position: absolute;
   inset: 0;
   transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
-.deal-card:hover .deal-thumb img { transform: scale(1.12); }
+.deal-card:hover .deal-thumb img { transform: scale(1.05); }
+
+/* кнопка-обложка: клик открывает увеличение */
+.deal-cover {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: #0b0b11;
+  overflow: hidden;
+  cursor: zoom-in;
+  appearance: none;
+}
+.deal-cover img { display: block; }
+.deal-cover:disabled { cursor: default; }
 .deal-thumb .off {
   position: absolute;
   left: 6px;
@@ -2034,8 +2053,12 @@ button.row-cover:hover { transform: scale(1.12); border-color: var(--accent); }
   cursor: zoom-out;
 }
 .cover-zoom-card {
-  width: clamp(170px, 55vw, 280px);
+  /* картинка подгоняется под окно: не больше 92vw по ширине и 88vh по высоте */
+  width: min(92vw, calc(88vh * 2 / 3));
+  max-width: 92vw;
+  max-height: 88vh;
   aspect-ratio: 2 / 3;
+  background: #0b0b11;
   border-radius: 16px;
   overflow: hidden;
   border: 1px solid var(--line-strong);
@@ -2044,10 +2067,10 @@ button.row-cover:hover { transform: scale(1.12); border-color: var(--accent); }
 .cover-zoom-card img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 @media (max-width: 720px) {
-  .cover-zoom-card { width: clamp(160px, 58vw, 240px); }
+  .cover-zoom-card { width: min(92vw, calc(82vh * 2 / 3)); max-height: 82vh; }
 }
 
 /* ============================================================
