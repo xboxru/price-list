@@ -194,6 +194,8 @@ export function resolveDeals(games: Game[], date = new Date()): Deal[] {
       match: game.name,
       discount: discountRounded,
       vibe: "Скидка недели",
+      // обложка из колонки C листа «ru price»; если её нет — подберётся автоматически
+      cover: game.cover ?? undefined,
       game,
       saleValue,
       salePrice: formatPrice(saleValue),

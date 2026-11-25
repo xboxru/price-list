@@ -103,5 +103,7 @@ export function toCard(g: Game, badge: string, collection: string): CollectionCa
     platforms: detectPlatforms(g.name),
     badge,
     collection,
+    // обложка из колонки C листа «ru price»; если её нет — подберётся автоматически
+    cover: g.cover ?? undefined,
   };
 }
