@@ -11,6 +11,7 @@ interface DealsProps {
   deals: Deal[];
   cartIds: Set<string>;
   addToCart: (id: string, name: string, price: string) => void;
+  removeFromCart: (id: string) => void;
   openCart: () => void;
 }
 
@@ -35,7 +36,10 @@ function ZoomCover({
     <button
       type="button"
       className="deal-cover"
-      onClick={() => src && onZoom({ src, name: title })}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (src) onZoom({ src, name: title });
+      }}
       disabled={!src}
       title={src ? "Увеличить обложку" : undefined}
       aria-label={`Увеличить обложку: ${title}`}
@@ -64,7 +68,7 @@ function Platforms({ name, className = "" }: { name: string; className?: string 
   );
 }
 
-export default function Deals({ deals, cartIds, addToCart, openCart }: DealsProps) {
+export default function Deals({ deals, cartIds, addToCart, removeFromCart, openCart }: DealsProps) {
   const cd = useCountdown();
   const [zoomed, setZoomed] = useState<ZoomTarget | null>(null);
 
@@ -90,8 +94,11 @@ export default function Deals({ deals, cartIds, addToCart, openCart }: DealsProp
 
   if (!spotlight) return null;
 
-  const handleAddToCart = (d: Deal) => {
-    addToCart(`deal-${d.game.id}`, d.game.name, d.salePrice);
+  // повторное нажатие по позиции снимает её из корзины
+  const toggleDeal = (d: Deal) => {
+    const id = `deal-${d.game.id}`;
+    if (cartIds.has(id)) removeFromCart(id);
+    else addToCart(id, d.game.name, d.salePrice);
   };
 
   const spotInCart = cartIds.has(`deal-${spotlight.game.id}`);
@@ -151,7 +158,7 @@ export default function Deals({ deals, cartIds, addToCart, openCart }: DealsProp
                   <span>Открыть корзину</span>
                 </button>
               ) : (
-                <button className="btn btn-primary" onClick={() => handleAddToCart(spotlight)}>
+                <button className="btn btn-primary" onClick={() => toggleDeal(spotlight)}>
                   <Plus size={16} />
                   <span>В корзину</span>
                 </button>
@@ -168,7 +175,7 @@ export default function Deals({ deals, cartIds, addToCart, openCart }: DealsProp
               deal={deal}
               index={i}
               inCart={cartIds.has(`deal-${deal.game.id}`)}
-              onAddToCart={() => handleAddToCart(deal)}
+              onToggle={() => toggleDeal(deal)}
               onOpenCart={openCart}
               onZoom={setZoomed}
             />
@@ -215,14 +222,14 @@ function DealCard({
   deal,
   index,
   inCart,
-  onAddToCart,
+  onToggle,
   onOpenCart,
   onZoom,
 }: {
   deal: Deal;
   index: number;
   inCart: boolean;
-  onAddToCart: () => void;
+  onToggle: () => void;
   onOpenCart: () => void;
   onZoom: (target: ZoomTarget) => void;
 }) {
@@ -230,6 +237,8 @@ function DealCard({
     <article
       className={`deal-card deals-fadein-side ${inCart ? "in-cart-row" : ""}`}
       style={{ animationDelay: `${0.05 + index * 0.06}s` }}
+      onClick={onToggle}
+      title={inCart ? "Убрать из корзины" : "Добавить в корзину"}
     >
       <div className="deal-thumb">
         <span className="discount-badge off">−{Math.round(deal.discount * 100)}%</span>
@@ -246,13 +255,21 @@ function DealCard({
         <span className="old">{deal.basePrice}</span>
         <span className="new">{deal.salePrice}</span>
         {inCart ? (
-          <button className="order-mini" onClick={onOpenCart} title="Открыть корзину">
+          <button
+            type="button"
+            className="order-mini"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenCart();
+            }}
+            title="Открыть корзину"
+          >
             <ShoppingCart size={14} />
           </button>
         ) : (
-          <button className="cart-row-btn in-deal" onClick={onAddToCart} title="Добавить в корзину">
+          <span className="cart-row-btn in-deal" title="Добавить в корзину">
             <Plus size={14} />
-          </button>
+          </span>
         )}
       </div>
     </article>

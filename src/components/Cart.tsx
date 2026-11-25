@@ -100,6 +100,7 @@ export default function Cart({ items, onRemove, onClear, onCopy, openSignal }: C
       <AnimatePresence>
         {items.length > 0 && (
           <motion.button
+            key="cart-fab"
             className={`cart-fab ${open ? "open" : ""}`}
             onClick={() => setOpen((v) => !v)}
             initial={{ scale: 0, opacity: 0 }}

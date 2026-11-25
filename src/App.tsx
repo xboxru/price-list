@@ -216,7 +216,7 @@ export default function App() {
             )}
 
             {!loading && deals.length > 0 && (
-              <Deals deals={deals} cartIds={cartIds} addToCart={addToCart} openCart={openCart} />
+              <Deals deals={deals} cartIds={cartIds} addToCart={addToCart} removeFromCart={removeFromCart} openCart={openCart} />
             )}
 
             <Marquee />
