@@ -194,7 +194,7 @@ export default function SiteHeader({
             Ежедневно с 11:00 до 23:00 мск
           </span>
           <span className="hdr-top-note">
-            Цены обновляются автоматически{total > 0 ? ` · в прайсе ${total.toLocaleString("ru-RU")} позиций` : ""}
+            В прайсе {total > 0 ? `${total.toLocaleString("ru-RU")} позиций` : "…"}
           </span>
         </div>
         <div className="hdr-top-links">

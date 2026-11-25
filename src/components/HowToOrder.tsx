@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { BadgeCheck, ChevronDown, Copy, HelpCircle, ShoppingCart } from "lucide-react";
+import { useState } from "react";
 import { FAQ } from "../lib/faq";
 
 const STEPS = [
@@ -23,6 +24,10 @@ const STEPS = [
 const ease = [0.2, 0.7, 0.2, 1] as const;
 
 export default function HowToOrder() {
+  /* открыт может быть только один вопрос: при открытии следующего
+     предыдущий закрывается */
+  const [openFaq, setOpenFaq] = useState<string | null>(null);
+
   return (
     <section className="howto" id="howto">
       <div className="section-head">
@@ -67,7 +72,16 @@ export default function HowToOrder() {
       <div className="faq" id="faq">
         <h3 className="faq-title">Частые вопросы</h3>
         {FAQ.map((item) => (
-          <details className="faq-item" key={item.question}>
+          <details
+            className="faq-item"
+            key={item.question}
+            open={openFaq === item.question}
+            onToggle={(e) => {
+              const open = e.currentTarget.open;
+              // автозакрытие соседнего вопроса не должно сбрасывать только что открытый
+              setOpenFaq((cur) => (open ? item.question : cur === item.question ? null : cur));
+            }}
+          >
             <summary>
               <span>{item.question}</span>
               <ChevronDown size={18} />
