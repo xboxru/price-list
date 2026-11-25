@@ -1090,6 +1090,27 @@ img {
   border-radius: 12px;
   overflow: hidden;
   position: relative;
+  /* рамка вокруг обложки, чтобы вертикальный постер читался на тёмном фоне */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(0, 255, 157, 0.1), transparent 62%),
+    linear-gradient(160deg, #171826, #0b0b11 70%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 22px -16px rgba(0, 0, 0, 0.9);
+  transition: border-color 0.28s, box-shadow 0.28s, background 0.28s;
+}
+.deal-card:hover .deal-thumb {
+  border-color: rgba(0, 255, 157, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 12px 28px -18px rgba(0, 255, 157, 0.35);
+}
+/* сам постер — внутри поля рамки, не вплотную к краю */
+.deal-thumb .deal-cover {
+  inset: 5px;
+  border-radius: 8px;
+  background: transparent;
 }
 .deal-thumb img {
   width: 100%;
