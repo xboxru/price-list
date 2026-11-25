@@ -3006,25 +3006,29 @@ button.row-cover:hover { transform: scale(1.12); border-color: var(--accent); }
   margin-bottom: 10px;
   transition: border-color 0.2s, background 0.2s;
 }
-.faq-item[open] {
+.faq-item.open {
   border-color: rgba(0, 255, 157, 0.28);
   background: rgba(255, 255, 255, 0.045);
 }
-.faq-item summary {
+.faq-q {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
+  width: 100%;
   padding: 16px 18px;
+  border: 0;
+  background: none;
+  text-align: left;
   cursor: pointer;
-  list-style: none;
+  font-family: inherit;
   font-size: 15px;
   font-weight: 700;
   color: var(--text);
 }
-.faq-item summary::-webkit-details-marker { display: none; }
-.faq-item summary svg { flex: 0 0 auto; color: var(--muted); transition: transform 0.25s, color 0.2s; }
-.faq-item[open] summary svg { transform: rotate(180deg); color: var(--accent); }
+.faq-q svg { flex: 0 0 auto; color: var(--muted); transition: transform 0.25s, color 0.2s; }
+.faq-item.open .faq-q svg { transform: rotate(180deg); color: var(--accent); }
+.faq-a { overflow: hidden; }
 .faq-item p {
   margin: 0;
   padding: 0 18px 18px;

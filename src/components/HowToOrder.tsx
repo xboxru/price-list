@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { BadgeCheck, ChevronDown, Copy, HelpCircle, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import { FAQ } from "../lib/faq";
@@ -71,24 +71,36 @@ export default function HowToOrder() {
 
       <div className="faq" id="faq">
         <h3 className="faq-title">Частые вопросы</h3>
-        {FAQ.map((item) => (
-          <details
-            className="faq-item"
-            key={item.question}
-            open={openFaq === item.question}
-            onToggle={(e) => {
-              const open = e.currentTarget.open;
-              // автозакрытие соседнего вопроса не должно сбрасывать только что открытый
-              setOpenFaq((cur) => (open ? item.question : cur === item.question ? null : cur));
-            }}
-          >
-            <summary>
-              <span>{item.question}</span>
-              <ChevronDown size={18} />
-            </summary>
-            <p>{item.answer}</p>
-          </details>
-        ))}
+        {FAQ.map((item) => {
+          const isOpen = openFaq === item.question;
+          return (
+            <div className={`faq-item ${isOpen ? "open" : ""}`} key={item.question}>
+              <button
+                type="button"
+                className="faq-q"
+                onClick={() => setOpenFaq(isOpen ? null : item.question)}
+                aria-expanded={isOpen}
+              >
+                <span>{item.question}</span>
+                <ChevronDown size={18} />
+              </button>
+              {/* высота анимируется, чтобы блок ниже не прыгал при переключении */}
+              <AnimatePresence initial={false}>
+                {isOpen && (
+                  <motion.div
+                    className="faq-a"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.24, ease }}
+                  >
+                    <p>{item.answer}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
