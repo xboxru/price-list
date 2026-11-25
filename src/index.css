@@ -2639,7 +2639,9 @@ button.row-cover:hover { transform: scale(1.12); border-color: var(--accent); }
 @media (max-width: 960px) {
   .deals-grid { grid-template-columns: 1fr; }
   .deal-spot { min-height: 460px; }
-  .deal-cards { grid-template-rows: none; grid-auto-rows: 1fr; }
+  /* карточки идут в одну колонку: высота по содержимому,
+     иначе grid растягивает короткие карточки и под ценой остаётся пустота */
+  .deal-cards { grid-template-rows: none; grid-auto-rows: auto; }
   .footer-grid { grid-template-columns: 1fr 1fr; }
   .footer-brand { grid-column: 1 / -1; }
 }
