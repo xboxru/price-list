@@ -274,7 +274,9 @@ export default function Catalog({ games, loading, cartIds, addToCart, removeFrom
                         <img src={cover} alt="" loading="lazy" />
                       </button>
                     ) : (
-                      <span className="row-cover" aria-hidden="true" />
+                      <span className="row-cover row-cover-empty" aria-hidden="true">
+                        <span className="row-cover-initial">{g.name.trim().charAt(0).toUpperCase()}</span>
+                      </span>
                     )}
                     <span className="row-name">
                       {(g.hot || g.isNew || g.isPreorder) && (

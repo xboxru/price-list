@@ -60,19 +60,19 @@ export default function App() {
   }, []);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpenSignal, setCartOpenSignal] = useState(0);
-  // Вид карточек на телефоне: «list» — один в ряд, «grid» — плитка в два столбца.
-  // Выбор запоминается, чтобы не переключать при каждом входе.
+  // Вид прайса: «grid» — плитка (по умолчанию на телефоне и десктопе),
+  // «list» — один в ряд. Выбор запоминается, чтобы не переключать при каждом входе.
   const [view, setView] = useState<"list" | "grid">(() => {
     try {
-      return localStorage.getItem("xpbox:view") === "grid" ? "grid" : "list";
+      return localStorage.getItem("xpbox:view:v2") === "list" ? "list" : "grid";
     } catch {
-      return "list";
+      return "grid";
     }
   });
 
   useEffect(() => {
     try {
-      localStorage.setItem("xpbox:view", view);
+      localStorage.setItem("xpbox:view:v2", view);
     } catch {
       /* приватный режим: просто не запоминаем */
     }

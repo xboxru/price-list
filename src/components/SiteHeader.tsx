@@ -253,13 +253,13 @@ export default function SiteHeader({
         </div>
 
         <div className="hdr-actions">
-          {/* телефон: выбор вида — один столбец или плитка в два */}
+          {/* выбор вида прайса: список или плитка */}
           <button
             className="nav-search-btn hdr-view"
             onClick={onToggleView}
             aria-pressed={view === "grid"}
-            aria-label={view === "grid" ? "Показывать по одному в ряд" : "Показывать по два в ряд"}
-            title={view === "grid" ? "Один в ряд" : "Два в ряд"}
+            aria-label={view === "grid" ? "Показывать списком" : "Показывать плиткой"}
+            title={view === "grid" ? "Списком" : "Плиткой"}
           >
             {view === "grid" ? <List size={20} /> : <LayoutGrid size={20} />}
           </button>
